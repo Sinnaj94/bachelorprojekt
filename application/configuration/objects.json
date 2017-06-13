@@ -1,0 +1,19 @@
+{
+    "statusList": [],
+    "categories": {
+    },
+    "configuration": {
+    	"updateInterval": "10000",
+        "statusObject": {
+            "category": [
+                "postal", 
+                "fridge", 
+                "temperature", 
+                "door"
+            ], 
+            "description": "String", 
+            "name": "String", 
+            "address": "int"
+        }
+    }
+}
