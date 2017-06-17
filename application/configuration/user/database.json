@@ -1,7 +1,9 @@
 {
-    "statusList": [], 
+    "statusList": [],
+    "categories": {
+    },
     "configuration": {
-        "updateInterval": "10000", 
+    	"updateInterval": "10000",
         "statusObject": {
             "category": [
                 "postal", 
@@ -13,6 +15,5 @@
             "name": "String", 
             "address": "int"
         }
-    }, 
-    "categories": {}
+    }
 }
