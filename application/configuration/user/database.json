@@ -1,13 +1,13 @@
 {
   "statusList": [
     {
-      "statusId": 1
-    },
-    {
-      "statusId": 2
-    },
-    {
-      "statusId": 3
+      "statusId": 1,
+      "prefix": "Das Potentiometer ist um ",
+      "postfix": "gedreht.",
+      "sensor": {
+        "name": "/dev/cu.wchusbserial1420",
+        "rate": 9600
+      }
     }
   ]
 }

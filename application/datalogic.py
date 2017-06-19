@@ -41,6 +41,10 @@ class DatabaseWrite:
 	def writeData(self, args, value):
 		return _database.writeConfiguration(args, value)
 
+	def addStatus(self, status):
+		self.writeData('statusList')
+
+
 ### INTERFACES
 
 # Database
@@ -104,16 +108,22 @@ class DataOperations:
 			except(KeyError):
 				return self.keyError()
 
-	def writeConfiguration(self, args, value):
+	def writeConfiguration(self, args, value, overwrite = True):
 		# open database temporary
 		with open(self.userbasefile) as f:
 			data = json.load(f)
 			if(isinstance(args, list)):
-				return True
+				self.writeNestedConfiguration(args, value)
 			data[args] = value
 		# save data to database finally
 		self.saveToDatabase(data)
 		return False
+
+	def writeNestedConfiguration(self, args, value, data):
+		print("Not implemented")	
+		
+	def createKeyIfNotExistant(self, key, data):
+		print("Not implemented")	
 
 	def saveToDatabase(self, data):
 		with open(self.userbasefile, 'w') as outfile:
@@ -131,8 +141,3 @@ class DataOperations:
 		for arg in args:
 			current_data = current_data[arg]
 		return current_data
-
-# TODO: rausnehmen am Ende
-database = Database()
-dataConnect = DatabaseGet(database)
-print(dataConnect.getHighestId())

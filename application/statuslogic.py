@@ -46,10 +46,9 @@ class Sensor:
 
 	# starts listening thread to sensor
 	def startListeningThread(self):
-		if(not self.hasConnectionError()):
-			self.thread = threading.Thread(target=self.listenToChanges, args=())
-			self.thread.daemon = True
-			self.thread.start()
+		self.thread = threading.Thread(target=self.listenToChanges, args=())
+		self.thread.daemon = True
+		self.thread.start()
 
 	# requests the status by sending a byte to the hardware sensor
 	def requestStatusOnce(self):
@@ -61,35 +60,69 @@ class Sensor:
 	# TODO: implement timeout
 	def makeStatusRequest(self):
 		self.statusRequestPending = True
-		currentRequest = 1
+		currentRequest = 0
 		while(self.statusRequestPending and currentRequest < self.maximalRequests):
 			self.requestStatusOnce()
 			currentRequest+=1
-			print(currentRequest)
 			time.sleep(.1)
-		return True
-
-	# return an error if could not connect
-	def returnError(self):
-		return {"error": "Device not available"}
+		if(self.statusRequestPending):
+			return self.returnError()
+		return self.status
 
 	# make a status request and return value
 	def getCurrentStatus(self):
 		if(self.hasConnectionError()):
-			self.returnError()
-		self.makeStatusRequest()
-		return self.status
+			return False
+		return self.makeStatusRequest()
 
 class Status:
 	# sensor = sensor object
 	# statusId = id of sensor - automatically generated
-	def __init__(self, sensor, databaseGet):
-		self.sensor = sensor
-		self.statusId = generateStatusId()
+	def __init__(self, databaseGet, statusId, sensor, prefix=None, postfix=None):
+		#self.sensor = sensor
 		self.databaseGet = databaseGet
+		if(not statusId):
+			self.statusId = self.generateStatusId()
+		else:
+			self.statusId = statusId
+		self.sensor = sensor
+		self.prefix = prefix
+		self.postfix = postfix
+
+	def getSensor(self):
+		return self.sensor
 
 	# generate status id by looking up the highest value in database and incrementing
-	def generateStatusId():
-		return databaseGet.getHighestId() + 1
+	def generateStatusId(self):
+		return self.databaseGet.getHighestId() + 1
+
+	def returnErrorMessage(self):
+		return {'error': 'Es gab ein Problem mit dem Sensor. Bitte erneut versuchen. Wenn das Problem weiterhin auftritt, bitte kontaktieren Sie den Adminstrator.'}
+
+	# request sensor and format the status
+	def getFormattedStatus(self):
+		sensorStatus = self.sensor.getCurrentStatus()
+		# if there is no sensor status or false, return error
+		if(not sensorStatus):
+			return self.returnErrorMessage()
+		else:
+			return {'value': sensorStatus, 'prefix': self.prefix, 'postfix': self.postfix}
+
+# generate status with including data from database
+class StatusFactory:
+	def __init__(self, databaseGet):
+		self.databaseGet = databaseGet
+		self._statusList = self.produceStatusFromDatabase()
+
+	def produceStatusFromDatabase(self):
+		status = self.databaseGet.getStatus()
+		statusList = []
+		for currentStatus in status:
+			sensorObject = Sensor(currentStatus['sensor']['name'], currentStatus['sensor']['rate'])
+			statusObject = Status(self.databaseGet, currentStatus['statusId'], sensorObject, currentStatus['prefix'], currentStatus['postfix'])
+			statusList.append(statusObject)
+		return statusList
 
 
+	def getSensors(self):
+		return self._statusList
