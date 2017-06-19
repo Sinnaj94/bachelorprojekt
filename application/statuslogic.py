@@ -35,10 +35,10 @@ class Sensor:
 		if(not self.connection_error):
 			_status = None
 			while(1):
-				currentValue = self.serial.readline()
+				currentValue = self.serial.readline().splitlines()[0]
 				if(currentValue):
 					self.statusRequestPending = False
-				self.status = currentValue
+					self.status = currentValue
 
 	# check if there was a connection error at the beginning
 	def hasConnectionError(self):
@@ -66,7 +66,7 @@ class Sensor:
 			currentRequest+=1
 			time.sleep(.1)
 		if(self.statusRequestPending):
-			return self.returnError()
+			return False
 		return self.status
 
 	# make a status request and return value
@@ -78,7 +78,7 @@ class Sensor:
 class Status:
 	# sensor = sensor object
 	# statusId = id of sensor - automatically generated
-	def __init__(self, databaseGet, statusId, sensor, prefix=None, postfix=None):
+	def __init__(self, databaseGet, statusId, sensor, name, dataType, prefix=None, postfix=None):
 		#self.sensor = sensor
 		self.databaseGet = databaseGet
 		if(not statusId):
@@ -86,8 +86,10 @@ class Status:
 		else:
 			self.statusId = statusId
 		self.sensor = sensor
+		self.name = name
 		self.prefix = prefix
 		self.postfix = postfix
+		self.dataType = dataType
 
 	def getSensor(self):
 		return self.sensor
@@ -96,17 +98,20 @@ class Status:
 	def generateStatusId(self):
 		return self.databaseGet.getHighestId() + 1
 
-	def returnErrorMessage(self):
-		return {'error': 'Es gab ein Problem mit dem Sensor. Bitte erneut versuchen. Wenn das Problem weiterhin auftritt, bitte kontaktieren Sie den Adminstrator.'}
-
 	# request sensor and format the status
 	def getFormattedStatus(self):
 		sensorStatus = self.sensor.getCurrentStatus()
 		# if there is no sensor status or false, return error
 		if(not sensorStatus):
-			return self.returnErrorMessage()
+			return False
 		else:
-			return {'value': sensorStatus, 'prefix': self.prefix, 'postfix': self.postfix}
+			return {'value': sensorStatus, 'name': self.name ,'prefix': self.prefix, 'postfix': self.postfix, 'id': self.statusId, 'dataType': self.dataType}
+
+	def getStatusId(self):
+		return self.statusId
+
+	def getStatusName(self):
+		return self.name
 
 # generate status with including data from database
 class StatusFactory:
@@ -119,10 +124,31 @@ class StatusFactory:
 		statusList = []
 		for currentStatus in status:
 			sensorObject = Sensor(currentStatus['sensor']['name'], currentStatus['sensor']['rate'])
-			statusObject = Status(self.databaseGet, currentStatus['statusId'], sensorObject, currentStatus['prefix'], currentStatus['postfix'])
+			statusObject = Status(self.databaseGet, currentStatus['statusId'], sensorObject, currentStatus['name'], currentStatus['dataType'], currentStatus['prefix'], currentStatus['postfix'])
 			statusList.append(statusObject)
 		return statusList
 
-
 	def getSensors(self):
 		return self._statusList
+
+# Interface for Statusinstance
+class StatusInterface:
+	def __init__(self, statusList):
+		# build statusobjects via statusfactory
+		self._statusList = statusList
+
+	# get a status by a given id
+	def getStatusById(self, id):
+		for status in self._statusList:
+			if(status.getStatusId() == id):
+				return status.getFormattedStatus()
+		return None
+
+	# get a status by a name
+	def getStatusByName(self, name):
+		for status in self._statusList:
+			# take lower name
+			if(status.getStatusName().lower() == name.lower()):
+				return status.getFormattedStatus()
+		return None
+		

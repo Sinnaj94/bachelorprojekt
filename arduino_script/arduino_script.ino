@@ -53,8 +53,9 @@ void updatePotentiometerValue() {
 }
 
 String formatReturn() {
-  String _return = (String)"return_type:" + return_type + (String)",val:" + String(val);
-  return _return;
+  //String _return = (String)"return_type:" + return_type + (String)",val:" + String(val);
+  
+  return String(val);
 }
  
 

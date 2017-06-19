@@ -3,11 +3,13 @@
     {
       "statusId": 1,
       "prefix": "Das Potentiometer ist um ",
-      "postfix": "gedreht.",
+      "postfix": "Grad gedreht.",
       "sensor": {
         "name": "/dev/cu.wchusbserial1420",
         "rate": 9600
-      }
+      },
+      "name": "briefkasten",
+      "dataType": "int"
     }
   ]
 }

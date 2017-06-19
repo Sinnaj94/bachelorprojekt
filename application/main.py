@@ -10,7 +10,9 @@ class Main:
 		self.getDataConnector = datalogic.DatabaseGet(self.database)
 		self.writeDataConnector = datalogic.DatabaseWrite(self.database)
 		# STATUS
-		# generate all status objects from database
-		self.statusList = statuslogic.StatusFactory(self.getDataConnector)
+		# create the statusinterface with given statusfactory
+		self.statusInterface = statuslogic.StatusInterface(statuslogic.StatusFactory(self.getDataConnector).getSensors())
+		time.sleep(1)
+		print(self.statusInterface.getStatusByName("briefkasten"))
 
 Main()
