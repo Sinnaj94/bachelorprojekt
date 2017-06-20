@@ -18,7 +18,8 @@ class Main:
 		# create the necessary web connector
 		self.webConnector = interfacelogic.WebConnector()
 		# instantiate mobilelogic
-		self.mobileApi = interfacelogic.MobileApi(self.statusInterface, None, self.webConnector)
+		self.mobileApi = interfacelogic.MobileApi(self.statusInterface, None, self.webConnector, '/api')
+		self.alexaApi = interfacelogic.SpeechApi(self.statusInterface, self.webConnector, '/ask')
 		# instantiate ask logic
 		# TODO
 		# start serving using the web connector

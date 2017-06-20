@@ -1,9 +1,10 @@
 {
   "statusList": [
     {
+      "unit": "Grad",
       "statusId": 1,
-      "prefix": "Das Potentiometer ist um ",
-      "postfix": "Grad gedreht.",
+      "prefix": "Das Potentiometer ist um",
+      "postfix": "gedreht.",
       "sensor": {
         "name": "/dev/cu.wchusbserial1420",
         "rate": 9600

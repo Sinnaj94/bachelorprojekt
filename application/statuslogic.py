@@ -78,7 +78,7 @@ class Sensor:
 class Status:
 	# sensor = sensor object
 	# statusId = id of sensor - automatically generated
-	def __init__(self, databaseGet, statusId, sensor, name, dataType, prefix=None, postfix=None):
+	def __init__(self, databaseGet, statusId, sensor, name, dataType, unit=None, prefix=None, postfix=None):
 		#self.sensor = sensor
 		self.databaseGet = databaseGet
 		if(not statusId):
@@ -90,6 +90,7 @@ class Status:
 		self.prefix = prefix
 		self.postfix = postfix
 		self.dataType = dataType
+		self.unit = unit
 
 	def getSensor(self):
 		return self.sensor
@@ -99,13 +100,11 @@ class Status:
 		return self.databaseGet.getHighestId() + 1
 
 	# request sensor and format the status
-	def getFormattedStatus(self):
-		sensorStatus = self.sensor.getCurrentStatus()
-		# if there is no sensor status or false, return error
-		if(not sensorStatus):
-			return False
-		else:
-			return {'value': sensorStatus, 'name': self.name ,'prefix': self.prefix, 'postfix': self.postfix, 'id': self.statusId, 'dataType': self.dataType}
+	def getFormattedStatus(self, requestSensor = True):
+		sensorStatus = None
+		if(requestSensor):
+			sensorStatus = self.sensor.getCurrentStatus()
+		return {'value': sensorStatus, 'name': self.name ,'prefix': self.prefix, 'postfix': self.postfix, 'id': self.statusId, 'dataType': self.dataType, 'unit': self.unit}
 
 	def getStatusId(self):
 		return self.statusId
@@ -124,7 +123,7 @@ class StatusFactory:
 		statusList = []
 		for currentStatus in status:
 			sensorObject = Sensor(currentStatus['sensor']['name'], currentStatus['sensor']['rate'])
-			statusObject = Status(self.databaseGet, currentStatus['statusId'], sensorObject, currentStatus['name'], currentStatus['dataType'], currentStatus['prefix'], currentStatus['postfix'])
+			statusObject = Status(self.databaseGet, currentStatus['statusId'], sensorObject, currentStatus['name'], currentStatus['dataType'], currentStatus['unit'], currentStatus['prefix'], currentStatus['postfix'])
 			statusList.append(statusObject)
 		return statusList
 
@@ -137,18 +136,27 @@ class StatusInterface:
 		# build statusobjects via statusfactory
 		self._statusList = statusList
 
+	def _notFound(self):
+		return {'message': 'Did not find Sensor.'}
+
 	# get a status by a given id
-	def getStatusById(self, id):
+	def getStatusById(self, id, requestSensor = True):
 		for status in self._statusList:
 			if(status.getStatusId() == id):
-				return status.getFormattedStatus()
-		return None
+				return status.getFormattedStatus(requestSensor)
+		return self._notFound()
 
 	# get a status by a name
-	def getStatusByName(self, name):
+	def getStatusByName(self, name, requestSensor = True):
 		for status in self._statusList:
 			# take lower name
 			if(status.getStatusName().lower() == name.lower()):
-				return status.getFormattedStatus()
-		return None
+				return status.getFormattedStatus(requestSensor)
+		return self._notFound()
+
+	def getStatusList(self, requestSensor = True):
+		_return = []
+		for status in self._statusList:
+			_return.append(status.getFormattedStatus(requestSensor))
+		return _return
 		
