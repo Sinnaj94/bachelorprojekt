@@ -13,6 +13,8 @@
  */
 
 int potPin = 2;    // select the input pin for the potentiometer
+int switchPin = 2; // not analog
+int valButton = 0; // variable to store the value of button
 int val = 0;       // variable to store the value coming from the sensor
 int tempVal = -1;
 int serialRate = 9600;
@@ -21,28 +23,33 @@ String return_type = "number";
 char byteRead;
 void setup() {
   Serial.begin(serialRate);
+  // define as switch button
+  pinMode(switchPin,INPUT_PULLUP);
   // First Value
   updatePotentiometerValue();
-  returnValue();
+  updateButtonValue();
 }
 
 void loop() {
   updatePotentiometerValue();
+  updateButtonValue();
   checkRequestAndReturn();
   delay(updateRate);                  // stop the program for some time
+}
+
+void updateButtonValue() {
+  valButton = digitalRead(switchPin);
 }
 
 void checkRequestAndReturn() {
   if (Serial.available()) {
     byteRead = Serial.read();
     if(byteRead == '1') {
-      Serial.println(formatReturn());
+      Serial.println(formatReturn(val));
+    }else if(byteRead == '2') {
+      Serial.println(formatReturn(valButton));
     }
   }
-}
-
-void returnValue() {
-  Serial.println(formatReturn());
 }
 
 void updatePotentiometerValue() {
@@ -52,10 +59,8 @@ void updatePotentiometerValue() {
   }
 }
 
-String formatReturn() {
-  //String _return = (String)"return_type:" + return_type + (String)",val:" + String(val);
-  
-  return String(val);
+String formatReturn(int returned_val) {
+  return String(returned_val);
 }
  
 

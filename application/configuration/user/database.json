@@ -3,13 +3,13 @@
     {
       "unit": "Grad",
       "statusId": 1,
-      "prefix": "Das Potentiometer ist um",
-      "postfix": "gedreht.",
+      "prefix": "Es sind momentan circa",
+      "postfix": "draussen.",
       "sensor": {
         "name": "/dev/cu.wchusbserial1420",
         "rate": 9600
       },
-      "name": "briefkasten",
+      "name": "thermometer",
       "dataType": "int"
     }
   ]
