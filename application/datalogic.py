@@ -1,7 +1,7 @@
 import json
 from shutil import copyfile
 import os
-
+from collections import defaultdict
 ### INTERFACES 
 # connector to get values out of database
 class DatabaseGet:
@@ -112,7 +112,6 @@ class DataOperations:
 				# if it is list, suppose that args are in array form
 				if(isinstance(args, list)):
 					return self._getByGivenArgs(args, data)
-					print("B")
 				return data[args]
 			except(KeyError):
 				return self.keyError()
@@ -128,11 +127,10 @@ class DataOperations:
 		self.saveToDatabase(data)
 		return False
 
-	def writeNestedConfiguration(self, args, value, data):
-		print("Not implemented")	
-		
-	def createKeyIfNotExistant(self, key, data):
-		print("Not implemented")	
+	def writeNestedConfiguration(self, args, dictionary):
+		workingDict = defaultdict(dictionary)
+		print(workingDict)
+
 
 	def saveToDatabase(self, data):
 		with open(self.userbasefile, 'w') as outfile:
