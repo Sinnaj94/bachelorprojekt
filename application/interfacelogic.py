@@ -12,7 +12,12 @@ class Main:
 		self.database = datalogic.Database()
 		self.getDataConnector = datalogic.DatabaseGet(self.database)
 		self.writeDataConnector = datalogic.DatabaseWrite(self.database)
-		self.statusInterface = statuslogic.StatusInterface(statuslogic.StatusFactory(self.getDataConnector).getSensors())
+		# generate sensors
+		self.sensorList = statuslogic.SensorFactory(self.getDataConnector).getSensors()
+		# generate stati
+		self.statusList = statuslogic.StatusFactory(self.getDataConnector, self.sensorList).getStatus()
+		self.statusInterface = statuslogic.StatusInterface(self.statusList)
+
 
 connector = Main()
 
@@ -22,7 +27,7 @@ ask = Ask(app, '/ask')
 
 @ask.launch
 def connection():
-    return question("Tach zamm. Frag den Status gern ab. Aber im Endeffekt juckt's niemandem.")
+    return question("Welchen Status?")
 
 # Build Ask intents
 @ask.intent('StatusIntent')
@@ -34,11 +39,11 @@ def getStatus(statusName, statusId):
 		currentStatus = connector.statusInterface.getStatusById(int(statusId))
 	else:
 		return statement("Bitte gib eine ID-Nummer oder einen Namen vom Statusgeraet an.")
-	try:
-		currentStatus['message']
+	if('message' in currentStatus):
 		return statement("Der Status mit den gegebenen Parametern wurde nicht gefunden oder es trat ein Problem auf.")
-	except(KeyError):
-		return statement(currentStatus['prefix'] + " " + currentStatus['value']+ " " + currentStatus['unit'] + " " + currentStatus['postfix'])
+	if(currentStatus['dataType'] == 'bool'):
+		return statement(currentStatus['prefix'] + " " + currentStatus['unit'].split('|')[int(currentStatus['value'])] + " " + currentStatus['postfix'])
+	return statement(currentStatus['prefix'] + " " + currentStatus['value']+ " " + currentStatus['unit'] + " " + currentStatus['postfix'])
 
 # Run the application
 app.run(debug=False, host="0.0.0.0")

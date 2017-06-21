@@ -8,7 +8,7 @@ from datalogic import DatabaseGet
 class Sensor:
 	# name = name of usb host of sensor
 	# rate = baud rate of sensor
-	def __init__(self, name, rate):
+	def __init__(self, name, rate, sensorId):
 		self.name = name
 		self.rate = rate
 		self.thread = None
@@ -19,6 +19,7 @@ class Sensor:
 		self.statusRequestPending = False
 		self.waitTime = .1
 		self.maximalRequests = 5
+		self.id = sensorId
 		self.startListeningThread()
 
 	# build serial connection to sensor
@@ -51,18 +52,18 @@ class Sensor:
 		self.thread.start()
 
 	# requests the status by sending a byte to the hardware sensor
-	def requestStatusOnce(self):
+	def requestStatusOnce(self, requestDigit):
 		if(not self.hasConnectionError()):
 			self.statusRequestPending = True
-			self.serial.write('1')
+			self.serial.write(str(requestDigit))
 
 	# make multiple requests until answer is given
 	# TODO: implement timeout
-	def makeStatusRequest(self):
+	def makeStatusRequest(self, requestDigit):
 		self.statusRequestPending = True
 		currentRequest = 0
 		while(self.statusRequestPending and currentRequest < self.maximalRequests):
-			self.requestStatusOnce()
+			self.requestStatusOnce(requestDigit)
 			currentRequest+=1
 			time.sleep(.1)
 		if(self.statusRequestPending):
@@ -70,15 +71,18 @@ class Sensor:
 		return self.status
 
 	# make a status request and return value
-	def getCurrentStatus(self):
+	def getCurrentStatus(self, requestDigit):
 		if(self.hasConnectionError()):
 			return False
-		return self.makeStatusRequest()
+		return self.makeStatusRequest(requestDigit)
+
+	def getId(self):
+		return self.id
 
 class Status:
 	# sensor = sensor object
 	# statusId = id of sensor - automatically generated
-	def __init__(self, databaseGet, statusId, sensor, name, dataType, unit=None, prefix=None, postfix=None):
+	def __init__(self, databaseGet, statusId, sensor, name, dataType, requestDigit, unit=None, prefix=None, postfix=None):
 		#self.sensor = sensor
 		self.databaseGet = databaseGet
 		if(not statusId):
@@ -91,6 +95,7 @@ class Status:
 		self.postfix = postfix
 		self.dataType = dataType
 		self.unit = unit
+		self.requestDigit = requestDigit
 
 	def getSensor(self):
 		return self.sensor
@@ -103,7 +108,7 @@ class Status:
 	def getFormattedStatus(self, requestSensor = True):
 		sensorStatus = None
 		if(requestSensor):
-			sensorStatus = self.sensor.getCurrentStatus()
+			sensorStatus = self.sensor.getCurrentStatus(self.requestDigit)
 		return {'value': sensorStatus, 'name': self.name ,'prefix': self.prefix, 'postfix': self.postfix, 'id': self.statusId, 'dataType': self.dataType, 'unit': self.unit}
 
 	def getStatusId(self):
@@ -114,21 +119,42 @@ class Status:
 
 # generate status with including data from database
 class StatusFactory:
-	def __init__(self, databaseGet):
+	def __init__(self, databaseGet, sensorList):
 		self.databaseGet = databaseGet
+		self._sensorList = sensorList
 		self._statusList = self.produceStatusFromDatabase()
 
 	def produceStatusFromDatabase(self):
 		status = self.databaseGet.getStatus()
 		statusList = []
 		for currentStatus in status:
-			sensorObject = Sensor(currentStatus['sensor']['name'], currentStatus['sensor']['rate'])
-			statusObject = Status(self.databaseGet, currentStatus['statusId'], sensorObject, currentStatus['name'], currentStatus['dataType'], currentStatus['unit'], currentStatus['prefix'], currentStatus['postfix'])
+			sensorObject = None
+			for sensor in self._sensorList:
+				if(sensor.getId() == currentStatus['sensor']):
+					sensorObject = sensor
+			statusObject = Status(self.databaseGet, currentStatus['statusId'], sensorObject, currentStatus['name'], currentStatus['dataType'], currentStatus['requestDigit'], currentStatus['unit'], currentStatus['prefix'], currentStatus['postfix'])
 			statusList.append(statusObject)
 		return statusList
 
-	def getSensors(self):
+	def getStatus(self):
 		return self._statusList
+
+# generate sensor
+class SensorFactory:
+	def __init__(self, databaseGet):
+		self.databaseGet = databaseGet
+		self._sensorList = self.produceSensorsFromDatabase()
+
+	def produceSensorsFromDatabase(self):
+		sensors = self.databaseGet.getSensor()
+		sensorList = []
+		for sensor in sensors:
+			sensorList.append(Sensor(sensor['name'], sensor['rate'], sensor['sensorId']))
+		return sensorList
+
+	def getSensors(self):
+		return self._sensorList
+
 
 # Interface for Statusinstance
 class StatusInterface:

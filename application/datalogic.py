@@ -27,8 +27,17 @@ class DatabaseGet:
 		statusList = self._database.getConfiguration('statusList')
 		if(not statusId):
 			return statusList
-		for status in _return:
+		for status in statusList:
 			if(statusId == status['statusId']):
+				return status
+		return None
+
+	def getSensor(self, sensorId = None):
+		sensorList = self._database.getConfiguration('sensorList')
+		if(not sensorId):
+			return sensorList
+		for sensor in sensorList:
+			if(sensorId == sensor['sensorId']):
 				return status
 		return None
 

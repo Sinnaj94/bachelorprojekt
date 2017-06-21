@@ -47,7 +47,7 @@ void checkRequestAndReturn() {
     if(byteRead == '1') {
       Serial.println(formatReturn(val));
     }else if(byteRead == '2') {
-      Serial.println(formatReturn(valButton));
+      Serial.println(formatReturn(invertValue(valButton)));
     }
   }
 }
@@ -61,6 +61,10 @@ void updatePotentiometerValue() {
 
 String formatReturn(int returned_val) {
   return String(returned_val);
+}
+
+int invertValue(int value) {
+  return value==1?0:1;
 }
  
 
