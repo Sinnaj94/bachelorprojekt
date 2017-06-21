@@ -24,12 +24,13 @@ connector = Main()
 # Flask Application
 app = Flask(__name__)
 ask = Ask(app, '/ask')
+api = Api(app, '/api')
 
 @ask.launch
 def connection():
     return question("Welchen Status?")
 
-# Build Ask intents
+# Build Ask intent
 @ask.intent('StatusIntent')
 def getStatus(statusName, statusId):
 	currentStatus = None
@@ -44,6 +45,18 @@ def getStatus(statusName, statusId):
 	if(currentStatus['dataType'] == 'bool'):
 		return statement(currentStatus['prefix'] + " " + currentStatus['unit'].split('|')[int(currentStatus['value'])] + " " + currentStatus['postfix'])
 	return statement(currentStatus['prefix'] + " " + currentStatus['value']+ " " + currentStatus['unit'] + " " + currentStatus['postfix'])
+
+# Builds JSON API
+class Default(Resource):
+	def get(self):
+		return {'version':'1.0', 'name': 'Sensor API', 'author': 'Jannis Jahr'}
+
+class Status(Resource):
+	def get(self, statusId):
+		return connector.statusInterface.getStatusById(statusId)
+		
+api.add_resource(Default, '/')
+api.add_resource(Status, '/status/<int:statusId>')
 
 # Run the application
 app.run(debug=False, host="0.0.0.0")

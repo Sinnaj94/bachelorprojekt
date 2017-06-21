@@ -169,7 +169,6 @@ class StatusInterface:
 	def getStatusById(self, id, requestSensor = True):
 		for status in self._statusList:
 			if(status.getStatusId() == id):
-				print("Found it.")
 				return status.getFormattedStatus(requestSensor)
 		return self._notFound()
 
