@@ -22,6 +22,9 @@ class Sensor:
 		self.id = sensorId
 		self.startListeningThread()
 
+	def disconnect(self):
+		self.connection_error = True
+		self.serial.close()
 	# build serial connection to sensor
 	def getSerial(self):
 		try:
@@ -33,13 +36,16 @@ class Sensor:
 	# listen to changes of sensor
 	def listenToChanges(self):
 		# reads status and returns it when finished
-		if(not self.connection_error):
-			_status = None
-			while(1):
+		_status = None
+		while(not self.connection_error):
+			try:
 				currentValue = self.serial.readline().splitlines()[0]
 				if(currentValue):
 					self.statusRequestPending = False
 					self.status = currentValue
+			except(serial.SerialException):
+				currentValue = "Not available"
+			
 
 	# check if there was a connection error at the beginning
 	def hasConnectionError(self):
@@ -173,6 +179,10 @@ class ObjectManager:
 		self._sensorList = SensorFactory(self._dataConnector).getSensors()
 		self._statusList = StatusFactory(self._dataConnector, self._sensorList).getStatus()
 
+	def disconnectSensors(self):
+		for sensor in self._sensorList:
+			sensor.disconnect()
+
 	def getSensorList(self):
 		return self._sensorList
 
@@ -181,8 +191,9 @@ class ObjectManager:
 
 	def addStatus(self, statusDict):
 		# write status into database and build configuration again
-		myId = self._dataConnector.getHighestId()
+		myId = self._dataConnector.getHighestId() + 1
 		statusDict['id'] = myId
+		self.disconnectSensors()
 		self._dataConnector.addStatus(statusDict)
 		self.buildConfiguration()
 

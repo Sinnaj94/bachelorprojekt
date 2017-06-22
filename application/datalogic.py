@@ -63,7 +63,6 @@ class Database:
 		return self._dataOperations.returnConfiguration(args)
 
 	def writeConfiguration(self, key, value, appendArray=False):
-		print(appendArray)
 		if(appendArray):
 			self._dataOperations.appendToArray(key, value)
 		else:
@@ -123,7 +122,7 @@ class DataOperations:
 		self.saveToDatabase(data)
 		return True
 
-	def appendToArray(self, key, value):
+	def replaceValue(self, key, value):
 		# open database temporary
 		with open(self.userbasefile) as f:
 			data = json.load(f)
