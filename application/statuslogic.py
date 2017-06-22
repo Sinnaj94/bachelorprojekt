@@ -2,7 +2,7 @@ import serial
 import subprocess
 import time
 import threading
-from datalogic import DatabaseGet
+from datalogic import DataConnector
 
 # Sensor: Allows connection to a hardware Sensor
 class Sensor:
@@ -27,7 +27,7 @@ class Sensor:
 		try:
 			return serial.Serial(self.name,self.rate)
 		except serial.SerialException:
-			print("No Serial Device was connected.")
+			print("Serial Device on port "+ self.name+ " could not be connected.")
 			self.connection_error = True
 
 	# listen to changes of sensor
@@ -79,6 +79,10 @@ class Sensor:
 	def getId(self):
 		return self.id
 
+	def toDict(self):
+		return {'id': self.id, 'name': self.name, 'rate': self.rate}
+
+
 class Status:
 	# sensor = sensor object
 	# statusId = id of sensor - automatically generated
@@ -99,6 +103,10 @@ class Status:
 
 	def getSensor(self):
 		return self.sensor
+
+	# return status configuration as dict object
+	def toDict(self):
+		return {'unit': self.unit, 'sensor': self.sensor.getId(), 'name': self.name, 'prefix': self.prefix, 'postfix': self.postfix, 'requestDigit': self.requestDigit, 'dataType': self.dataType}
 
 	# generate status id by looking up the highest value in database and incrementing
 	def generateStatusId(self):
@@ -132,7 +140,7 @@ class StatusFactory:
 			for sensor in self._sensorList:
 				if(sensor.getId() == currentStatus['sensor']):
 					sensorObject = sensor
-			statusObject = Status(self.databaseGet, currentStatus['statusId'], sensorObject, currentStatus['name'], currentStatus['dataType'], currentStatus['requestDigit'], currentStatus['unit'], currentStatus['prefix'], currentStatus['postfix'])
+			statusObject = Status(self.databaseGet, currentStatus['id'], sensorObject, currentStatus['name'], currentStatus['dataType'], currentStatus['requestDigit'], currentStatus['unit'], currentStatus['prefix'], currentStatus['postfix'])
 			statusList.append(statusObject)
 		return statusList
 
@@ -149,32 +157,54 @@ class SensorFactory:
 		sensors = self.databaseGet.getSensor()
 		sensorList = []
 		for sensor in sensors:
-			sensorList.append(Sensor(sensor['name'], sensor['rate'], sensor['sensorId']))
+			sensorList.append(Sensor(sensor['name'], sensor['rate'], sensor['id']))
 		return sensorList
 
 	def getSensors(self):
 		return self._sensorList
 
+# manages objects sensor and status. 
+class ObjectManager:
+	def __init__(self, dataConnector):
+		self._dataConnector = dataConnector
+		self.buildConfiguration()
+
+	def buildConfiguration(self):
+		self._sensorList = SensorFactory(self._dataConnector).getSensors()
+		self._statusList = StatusFactory(self._dataConnector, self._sensorList).getStatus()
+
+	def getSensorList(self):
+		return self._sensorList
+
+	def getStatusList(self):
+		return self._statusList
+
+	def addStatus(self, statusDict):
+		# write status into database and build configuration again
+		myId = self._dataConnector.getHighestId()
+		statusDict['id'] = myId
+		self._dataConnector.addStatus(statusDict)
+		self.buildConfiguration()
 
 # Interface for Statusinstance
-class StatusInterface:
-	def __init__(self, statusList):
-		# build statusobjects via statusfactory
-		self._statusList = statusList
-
+class GetInterface:
+	def __init__(self, objectManager):
+		# assign the object manager
+		self.objectManager = objectManager
+	
 	def _notFound(self):
 		return {'message': 'Did not find Sensor.'}
 
 	# get a status by a given id
 	def getStatusById(self, id, requestSensor = True):
-		for status in self._statusList:
+		for status in self._getStatusFromManager():
 			if(status.getStatusId() == id):
 				return status.getFormattedStatus(requestSensor)
 		return self._notFound()
 
 	# get a status by a name
 	def getStatusByName(self, name, requestSensor = True):
-		for status in self._statusList:
+		for status in self._getStatusFromManager():
 			# take lower name
 			if(status.getStatusName().lower() == name.lower()):
 				return status.getFormattedStatus(requestSensor)
@@ -182,7 +212,18 @@ class StatusInterface:
 
 	def getStatusList(self, requestSensor = True):
 		_return = []
-		for status in self._statusList:
+		for status in self._getStatusFromManager():
 			_return.append(status.getFormattedStatus(requestSensor))
 		return _return
-		
+
+	def _getStatusFromManager(self):
+		return self.objectManager.getStatusList()
+
+# Interface for writing Status and Sensors
+class WriteInterface:
+	# get interface for reloading the configuration
+	def __init__(self, objectManager):
+		self.objectManager = objectManager
+
+	def addStatus(self, statusDict):
+		self.objectManager.addStatus(statusDict)

@@ -1,23 +1,16 @@
 from flask import Flask, render_template, jsonify
-from flask_restful import abort, Api, Resource
+from flask_restful import abort, Api, Resource, reqparse
 from flask_ask import Ask, statement, question
 import statuslogic
 import datalogic
-import configurationlogic
 import interfacelogic
 import time
 from flask_marshmallow import Marshmallow
 class Main:
 	def __init__(self):
-		self.database = datalogic.Database()
-		self.getDataConnector = datalogic.DatabaseGet(self.database)
-		self.writeDataConnector = datalogic.DatabaseWrite(self.database)
-		# generate sensors
-		self.sensorList = statuslogic.SensorFactory(self.getDataConnector).getSensors()
-		# generate stati
-		self.statusList = statuslogic.StatusFactory(self.getDataConnector, self.sensorList).getStatus()
-		self.statusInterface = statuslogic.StatusInterface(self.statusList)
-
+		self.objectManager = statuslogic.ObjectManager(datalogic.DataConnector(datalogic.Database()))
+		self.getInterface = statuslogic.GetInterface(self.objectManager)
+		self.writeInterface = statuslogic.WriteInterface(self.objectManager)
 
 connector = Main()
 
@@ -35,9 +28,9 @@ def connection():
 def getStatus(statusName, statusId):
 	currentStatus = None
 	if(statusName!='?' and statusName != None):
-		currentStatus = connector.statusInterface.getStatusByName(statusName)
+		currentStatus = connector.getInterface.getStatusByName(statusName)
 	elif(statusId!='?' and statusId != None):
-		currentStatus = connector.statusInterface.getStatusById(int(statusId))
+		currentStatus = connector.getInterface.getStatusById(int(statusId))
 	else:
 		return statement("Bitte gib eine ID-Nummer oder einen Namen vom Statusgeraet an.")
 	if('message' in currentStatus):
@@ -47,19 +40,30 @@ def getStatus(statusName, statusId):
 	return statement(currentStatus['prefix'] + " " + currentStatus['value']+ " " + currentStatus['unit'] + " " + currentStatus['postfix'])
 
 # Builds JSON API
+parser = reqparse.RequestParser()
+parser.add_argument("unit")
+parser.add_argument("prefix")
+parser.add_argument("postfix")
+parser.add_argument("sensor")
+parser.add_argument("requestDigit")
+parser.add_argument("name")
+parser.add_argument("dataType")
 class Default(Resource):
 	def get(self):
 		return jsonify({'version':'1.0', 'name': 'Sensor API', 'author': 'Jannis Jahr'})
 
 class StatusList(Resource):
 	def get(self):
-		return jsonify(connector.statusInterface.getStatusList(False))
-
+		return jsonify(connector.getInterface.getStatusList(False))
+	def post(self):
+		args = parser.parse_args()
+		connector.writeInterface.addStatus(args)
+		
 class Status(Resource):
 	def get(self, statusSelector):
 		if(statusSelector.isdigit()):
-			return jsonify(connector.statusInterface.getStatusById(int(statusSelector)))
-		return jsonify(connector.statusInterface.getStatusByName(statusSelector))
+			return jsonify(connector.getInterface.getStatusById(int(statusSelector)))
+		return jsonify(connector.getInterface.getStatusByName(statusSelector))
 
 api.add_resource(Default, '/')
 api.add_resource(StatusList, '/status')

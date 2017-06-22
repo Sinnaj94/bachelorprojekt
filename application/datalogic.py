@@ -3,8 +3,8 @@ from shutil import copyfile
 import os
 from collections import defaultdict
 ### INTERFACES 
-# connector to get values out of database
-class DatabaseGet:
+# connector to get values out of database and to write values into it
+class DataConnector:
 	# initialize DatabaseGet with given database
 	def __init__(self, database):
 		self._database = database
@@ -14,12 +14,14 @@ class DatabaseGet:
 		return self._database.getConfiguration(args)
 
 	# returns integer of status with highest id
-	def getHighestId(self):
+	def getHighestId(self, sensor = False):
 		statusList = self.getStatus()
+		if(sensor):
+			statusList = self.getSensor()
 		highest = -1
 		for status in statusList:
-			if(status['statusId'] > highest):
-				highest = status['statusId']
+			if(status['id'] > highest):
+				highest = status['id']
 		return highest
 
 	# gets status of database. if no status id given, return all
@@ -28,7 +30,7 @@ class DatabaseGet:
 		if(not statusId):
 			return statusList
 		for status in statusList:
-			if(statusId == status['statusId']):
+			if(statusId == status['id']):
 				return status
 		return None
 
@@ -37,24 +39,15 @@ class DatabaseGet:
 		if(not sensorId):
 			return sensorList
 		for sensor in sensorList:
-			if(sensorId == sensor['sensorId']):
+			if(sensorId == sensor['id']):
 				return status
 		return None
 
+	def addSensor(self, sensorDict):
+		self._database.writeConfiguration('sensorList', statusDict, True)
 
-# connector to write values into database
-class DatabaseWrite:
-	def __init__(self, database):
-		self._database = Database
-
-	def writeData(self, args, value):
-		return _database.writeConfiguration(args, value)
-
-	def addStatus(self, status):
-		self.writeData('statusList')
-
-
-### INTERFACES
+	def addStatus(self, statusDict):
+		self._database.writeConfiguration('statusList', statusDict, True)
 
 # Database
 class Database:	
@@ -69,10 +62,15 @@ class Database:
 	def getConfiguration(self, args = None):
 		return self._dataOperations.returnConfiguration(args)
 
-	def writeConfiguration(self, args, value):
-		return self._dataOperations.writeConfiguration(args, value)
+	def writeConfiguration(self, key, value, appendArray=False):
+		print(appendArray)
+		if(appendArray):
+			self._dataOperations.appendToArray(key, value)
+		else:
+			self._dataOperations.replaceValue(key, value)
+		#return self._dataOperations.writeConfiguration(args, value)
 
-# Todo Put in data operations
+# Primitive Data Operations: Level 4
 class DataOperations:
 	def __init__(self, base = "configuration", userbase = "configuration/user", file = "database.json"):
 		self.base = base
@@ -116,21 +114,23 @@ class DataOperations:
 			except(KeyError):
 				return self.keyError()
 
-	def writeConfiguration(self, args, value, overwrite = True):
+	def appendToArray(self, key, value):
 		# open database temporary
 		with open(self.userbasefile) as f:
 			data = json.load(f)
-			if(isinstance(args, list)):
-				self.writeNestedConfiguration(args, value)
-			data[args] = value
+			data[key].append(value)
 		# save data to database finally
 		self.saveToDatabase(data)
-		return False
+		return True
 
-	def writeNestedConfiguration(self, args, dictionary):
-		workingDict = defaultdict(dictionary)
-		print(workingDict)
-
+	def appendToArray(self, key, value):
+		# open database temporary
+		with open(self.userbasefile) as f:
+			data = json.load(f)
+			data[key] = value
+		# save data to database finally
+		self.saveToDatabase(data)
+		return True
 
 	def saveToDatabase(self, data):
 		with open(self.userbasefile, 'w') as outfile:
