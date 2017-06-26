@@ -11,14 +11,6 @@ class DataConnector:
         """
         self._database = database
 
-    def get_data(self, args=None):
-        """
-        Access Database and return Dictionary with Configuration
-        :param args: Optional args
-        :return: Dictionary with Configuration
-        """
-        return self._database.get_configuration(args)
-
     def get_highest_id(self, sensor=False):
         """
         Return highest id of Status or Sensor
@@ -40,13 +32,7 @@ class DataConnector:
         :param status_id: If given, return Status with status_id
         :return: Return statusconfiguration with optional id
         """
-        status_list = self._database.get_configuration('statusList')
-        if not status_id:
-            return status_list
-        for status in status_list:
-            if status_id == status['id']:
-                return status
-        return None
+        return self._database.get_configuration('status_list', status_id)
 
     def get_sensor(self, sensor_id=None):
         """
@@ -54,39 +40,21 @@ class DataConnector:
         :param sensor_id: If given, return Sensor with sensor_id
         :return: Return sensorconfiguration with optional id
         """
-        sensor_list = self._database.get_configuration('sensorList')
-        if not sensor_id:
-            return sensor_list
-        for sensor in sensor_list:
-            if sensor_id == sensor['id']:
-                return sensor
-        return None
+        return self._database.get_configuration('sensor_list', sensor_id)
 
     def add_sensor(self, sensor_dict):
         """
         Add sensor to Configuration
         :param sensor_dict: Sensor Object in dictionary form
         """
-        self._database.write_configuration('sensorList', sensor_dict, True)
+        self._database.write_configuration('sensor_list', sensor_dict, True)
 
     def add_status(self, status_dict):
         """
         Add status to Configuration
         :param status_dict: Status Object in dictionary form
         """
-        self._database.write_configuration('statusList', status_dict, True)
-
-    def remove_status(self, status_dict):
-        """
-        Remove Status from Configuration
-        :param status_dict: status object in dictionary form
-        :return:
-        """
-        try:
-            self._database.remove_configuration('statusList', ['id', status_dict['id']])
-            return True
-        except KeyError:
-            return False
+        self._database.write_configuration('status_list', status_dict, True)
 
     def replace_status_list(self, status_list):
         """
@@ -94,7 +62,15 @@ class DataConnector:
         :param status_list: Statuslist in array form
         :return:
         """
-        self._database.write_configuration('statusList', status_list, False)
+        self._database.write_configuration('status_list', status_list, False)
+
+    def replace_sensor_list(self, sensor_list):
+        """
+        Save SensorList to configuration and overwrite it
+        :param sensor_list: SensorList Object
+        :return:
+        """
+        self._database.write_configuration('sensor_list', sensor_list, False)
 
 
 class Database:
@@ -111,13 +87,19 @@ class Database:
         self._dataOperations = DataOperations(self.base, self.user_base, self.filename)
         self._dataOperations.create_database()
 
-    def get_configuration(self, args=None):
+    def get_configuration(self, key=None, my_id=None):
         """
         Return Configuration from DB with given args
         :param args: Arguments
         :return: Configuration with given Arguments
         """
-        return self._dataOperations.return_configuration(args)
+        my_list = self._dataOperations.return_configuration(key)
+        if not my_id:
+            return my_list
+        for item in my_list:
+            if my_id == item['id']:
+                return item
+        return None
 
     def write_configuration(self, key, value, append_array=False):
         """
@@ -146,6 +128,7 @@ class DataOperations:
         self.my_file = my_file
         self.base_file = os.path.join(self.base, self.my_file)
         self.user_base_file = os.path.join(self.user_base, self.my_file)
+        self.create_database()
         self._data = self.load_data()
 
     def load_data(self):
@@ -192,6 +175,3 @@ class DataOperations:
         self._data[key].append(value)
         if save:
             self.save_data(self._data)
-
-dat_con = DataConnector(Database())
-dat_con.add_status("Test")

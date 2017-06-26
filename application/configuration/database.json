@@ -1,31 +1,20 @@
 {
-  "statusList": [
+  "sensor_list": [
     {
-      "unit": "Grad",
+      "rate": 9600,
       "id": 1,
-      "prefix": "Es sind momentan circa",
-      "postfix": "draussen.",
-      "sensor": 1,
-      "requestDigit": "1",
-      "name": "thermometer",
-      "dataType": "int"
-    },
-    {
-      "unit": "Du hast keine Briefe im Briefkasten.|Du hast Briefe im Briefkasten.",
-      "id": 2,
-      "prefix": "Hallo Jannis.",
-      "postfix": "Viele Gruesse - Alexa.",
-      "sensor": 1,
-      "requestDigit": "2",
-      "name": "briefkasten",
-      "dataType": "bool"
+      "port": "/dev/cu.wchusbserial1420"
     }
   ],
-  "sensorList": [
+  "status_list": [
     {
-      "id": 1,
-      "name": "/dev/cu.wchusbserial1420",
-      "rate": 9600
+      "name": "thermometer",
+      "postfix": "draussen.",
+      "data_type": "int",
+      "prefix": "Es sind momentan circa",
+      "request_digit": "1",
+      "sensor": 1,
+      "unit": "Grad"
     }
   ]
 }
