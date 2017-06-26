@@ -1,11 +1,12 @@
 from flask import Flask, render_template, jsonify
 from flask_restful import abort, Api, Resource, reqparse
-from flask_ask import Ask, statement, question
+#from flask_ask import Ask, statement, question
 import statuslogic
 import datalogic
-import interfacelogic
 import time
 from flask_marshmallow import Marshmallow
+
+
 class Main:
 	def __init__(self):
 		self.objectManager = statuslogic.ObjectManager(datalogic.DataConnector(datalogic.Database()))
@@ -64,6 +65,19 @@ class Status(Resource):
 		if(statusSelector.isdigit()):
 			return jsonify(connector.getInterface.getStatusById(int(statusSelector)))
 		return jsonify(connector.getInterface.getStatusByName(statusSelector))
+	def put(self, statusSelector):
+		args = parser.parse_args()
+		if(statusSelector.isdigit()):
+			args['id'] = int(statusSelector)
+			return connector.writeInterface.replaceStatus(args)
+		args['name'] = statusSelector
+		return connector.writeInterface.replaceStatus(args)
+	def delete(self, statusSelector):
+		if(statusSelector.isdigit()):
+			return connector.writeInterface.removeStatus(connector.getInterface.getStatusById(int(statusSelector)))
+		return connector.writeInterface.removeStatus(connector.getInterface.getStatusByName(statusSelector))
+
+
 
 api.add_resource(Default, '/')
 api.add_resource(StatusList, '/status')
