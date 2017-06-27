@@ -1,9 +1,7 @@
 import serial
-import subprocess
 import time
 import threading
 from datalogic import Database, DataConnector
-# TODO: Docs
 
 
 class Identifiable(object):
@@ -74,14 +72,13 @@ class Sensor(Identifiable, Serializable):
             return serial.Serial(self.port, self.rate)
         except serial.SerialException:
             print("Serial Device on port " + self.port + " could not be connected.")
-            self.connection_error = True
             return None
 
     def listen_to_changes(self):
         """
         Listen to a signal of the Sensor and write them into the status variable
         """
-        while serial is not None:
+        while self.serial is not None:
             try:
                 current_status = self.serial.readline()
                 # only update status, if a line could be read
@@ -90,7 +87,7 @@ class Sensor(Identifiable, Serializable):
                 self.status = current_status.splitlines()[0]
                 self.request_done = True
             except serial.SerialException:
-                self.status = False
+                self.status = None
 
     def start_listening_thread(self):
         """
@@ -106,11 +103,12 @@ class Sensor(Identifiable, Serializable):
         :param request_digit: request digit as a char, that can be sent to arduino
         :return:
         """
-        try:
-            self.request_done = False
-            self.serial.write(str(request_digit))
-        except serial.SerialException:
-            pass
+        if self.serial is not None:
+            try:
+                self.request_done = False
+                self.serial.write(str(request_digit))
+            except serial.SerialException:
+                pass
 
     def make_status_request(self, request_digit):
         """
@@ -120,7 +118,7 @@ class Sensor(Identifiable, Serializable):
         """
         self.request_done = False
         number_of_requests = 0
-        # make all requests
+        # make all requests0
         while not self.request_done and number_of_requests < self.max_number_of_requests:
             # make a request and wait for a specific time
             self.request_status_once(request_digit)
@@ -168,9 +166,13 @@ class Status(Identifiable, Serializable):
     def get_id(self):
         return self.my_id
 
-    def serialize(self):
-        return {'id': self.my_id, 'unit': self.unit, 'sensor': self.sensor.my_id, 'name': self.name, 'prefix': self.prefix,
-                'postfix': self.postfix, 'request_digit': self.request_digit, 'data_type': self.data_type}
+    def serialize(self, sensor_request=False):
+        return_value = {'id': self.my_id, 'unit': self.unit, 'sensor': self.sensor.my_id, 'name': self.name,
+                        'prefix': self.prefix, 'postfix': self.postfix, 'request_digit': self.request_digit,
+                        'data_type': self.data_type}
+        if sensor_request:
+            return_value['value'] = self.sensor.make_status_request(self.request_digit)
+        return return_value
 
 
 class MyList(object):
@@ -265,7 +267,7 @@ class StatusList(MyList):
         :param status_dictionary: Status in serialized form
         :return: Success
         """
-        if not status_dictionary.get('sensor'):
+        if status_dictionary.get('sensor') is None:
             return False
         sensor = self.sensor_list.get_sensors(int(status_dictionary.get('sensor')))
         if not sensor:
@@ -273,6 +275,12 @@ class StatusList(MyList):
         status_object = Status(status_dictionary.get('id'), sensor, status_dictionary.get('name'), status_dictionary.get('data_type'), status_dictionary.get('request_digit'), status_dictionary.get('unit'), status_dictionary.get('prefix'), status_dictionary.get('postfix'))
         super(StatusList, self).produce_from_single_entry(status_object)
         return True
+
+    def get_current_status(self, key, value):
+        for my_status in self.my_list:
+            if my_status.serialize()[key] == value:
+                return my_status.serialize(True)
+        return False
 
 
 class SensorList(MyList):
@@ -286,13 +294,13 @@ class SensorList(MyList):
         sensor_object = Sensor(sensor_dictionary.get('port'), sensor_dictionary.get('rate'), sensor_dictionary.get('id'), sensor_dictionary.get('name'))
         super(SensorList, self).produce_from_single_entry(sensor_object)
 
-    def get_sensors(self, my_id = None):
+    def get_sensors(self, my_id=None):
         """
         Get all Sensors
         :param my_id: If set, return Sensor with specific Id
         :return: Sensor optionally with specific ID
         """
-        if not my_id:
+        if my_id is None:
             return self.my_list
         else:
             for sensor in self.my_list:
@@ -319,6 +327,43 @@ class Manager:
         self.sensor_list.produce_from_multiple_entries(self._data_connector.get_sensor())
         self.status_list.produce_from_multiple_entries(self._data_connector.get_status())
 
+    def get_status_and_request_sensor_by_id(self, my_id):
+        """
+        Get Status and Request the underlying sensor with an id
+        :param my_id: Id
+        :return: dictionary object with additional value or error
+        """
+        my_return = self.status_list.get_current_status('id', my_id)
+        if not my_return:
+            return self.error_with_status()
+        return my_return
+
+    def get_status_and_request_sensor_by_name(self, my_name):
+        """
+        Get Status and Request the underlying sensor with an id
+        :param my_name: Name
+        :return: dictionary object with additional value or error
+        """
+        my_return = self.status_list.get_current_status('name', my_name)
+        if not my_return:
+            return self.error_with_status()
+        return my_return
+
+    def error_with_status(self):
+        return {'message': 'There has been an Error with the Status. The Sensor is probably configured wrong or idle.'}
+
+    def get_status_list(self):
+        """
+        :return: Dictionary of statuslist
+        """
+        return self.status_list.serialize()
+
+    def get_sensor_list(self):
+        """
+        :return: Dictionary of sensorlist
+        """
+        return self.sensor_list.serialize()
+
     def add_status(self, status_dictionary):
         """
         Add a Single Status
@@ -329,12 +374,23 @@ class Manager:
         if self.save_to_database:
             self._data_connector.replace_status_list(self.status_list.serialize())
 
-    def remove_status(self, key, value):
-        self.status_list.remove_by_attribute(key, value)
+    def remove_status(self, my_id):
+        """
+        remove status by key and value and save to database
+        :param my_id: id of the sensor
+        :return:
+        """
+        self.status_list.remove_by_attribute('id', my_id)
         if self.save_to_database:
             self._data_connector.replace_status_list(self.status_list.serialize())
 
     def remove_sensor(self, key, value):
+        """
+        Remove Value with specific key value pair
+        :param key: key
+        :param value: value
+        :return:
+        """
         self.status_list.remove_by_attribute(key, value)
         if self.save_to_database:
             self._data_connector.replace_sensor_list(self.sensor_list.serialize())
@@ -343,7 +399,6 @@ class Manager:
         """
         Add a Single Sensor
         :param sensor_dictionary: Status in Dictionary Form
-        :param save_to_database: Optionally save it to Database. Default is True
         """
         self.sensor_list.produce_from_single_entry(sensor_dictionary)
         if self.save_to_database:

@@ -2,18 +2,20 @@
   "sensor_list": [
     {
       "rate": 9600,
-      "id": 1,
-      "port": "/dev/cu.wchusbserial1420"
+      "id": 0,
+      "port": "/dev/cu.wchusbserial1420",
+      "name": "Arduino Sensor 1"
     }
   ],
   "status_list": [
     {
-      "name": "thermometer",
-      "postfix": "draussen.",
-      "data_type": "int",
-      "prefix": "Es sind momentan circa",
       "request_digit": "1",
-      "sensor": 1,
+      "prefix": "Es sind momentan circa",
+      "name": "thermometer",
+      "data_type": "int",
+      "postfix": "draussen.",
+      "sensor": 0,
+      "id": 0,
       "unit": "Grad"
     }
   ]
