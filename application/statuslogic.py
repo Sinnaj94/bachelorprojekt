@@ -6,17 +6,52 @@ from datalogic import Database, DataConnector
 # TODO: Docs
 
 
-class Sensor():
+class Identifiable(object):
+    """
+    Abstract class for calling name and id of an object
+    """
+    def __init__(self, my_id, name):
+        self.my_id = my_id
+        self.name = name
+
+    def get_id(self):
+        """
+        Return ID
+        :return: ID
+        """
+        return self.my_id
+
+    def set_id(self, my_id):
+        self.my_id = my_id
+
+    def get_name(self):
+        """
+        Return Name
+        :return: Name
+        """
+        return self.name
+
+
+class Serializable(object):
+    """
+    Abstract class, where Serialize should be overwritten, otherwise you get an error
+    """
+    def serialize(self):
+        raise NotImplementedError()
+
+
+class Sensor(Identifiable, Serializable):
     """
     Sensor item
     """
-    def __init__(self, port, rate, my_id):
+    def __init__(self, port, rate, my_id, name):
         """
         Constructor
         :param port: Port, that pyserial should access
         :param rate: Baud Rate of Sensor
         :param my_id: Id of the Sensor
         """
+        super(Sensor, self).__init__(my_id, name)
         self.port = port
         self.rate = rate
         self.serial = self.get_serial()
@@ -24,7 +59,6 @@ class Sensor():
         self.status = None
         self.timeout = .1
         self.max_number_of_requests = 5
-        self.my_id = my_id
         self.start_listening_thread()
         self.request_done = False
 
@@ -104,17 +138,19 @@ class Sensor():
         """
         return self.make_status_request(request_digit)
 
+    def get_id(self):
+        return self.my_id
+
     def serialize(self):
-        return {'id': self.my_id, 'port': self.port, 'rate': self.rate}
+        return {'id': self.my_id, 'port': self.port, 'rate': self.rate, 'name': self.name}
 
 
-class Status:
+class Status(Identifiable, Serializable):
     """
     Status item
     """
     def __init__(self, my_id, sensor, name, data_type, request_digit, unit=None, prefix=None, postfix=None):
-        self.my_id = my_id
-        self.name = name
+        super(Status, self).__init__(my_id, name)
         self.sensor = sensor
         self.prefix = prefix
         self.postfix = postfix
@@ -129,8 +165,11 @@ class Status:
         """
         return self.sensor.get_current_status(self.request_digit)
 
+    def get_id(self):
+        return self.my_id
+
     def serialize(self):
-        return {'unit': self.unit, 'sensor': self.sensor.my_id, 'name': self.name, 'prefix': self.prefix,
+        return {'id': self.my_id, 'unit': self.unit, 'sensor': self.sensor.my_id, 'name': self.name, 'prefix': self.prefix,
                 'postfix': self.postfix, 'request_digit': self.request_digit, 'data_type': self.data_type}
 
 
@@ -142,6 +181,10 @@ class MyList(object):
         self.my_list = []
 
     def append_to_list(self, appended):
+        """
+        Append a List or a single item to the list
+        :param appended: List or Object
+        """
         if isinstance(appended, list):
             for my_item in appended:
                 self.my_list.append(my_item)
@@ -149,23 +192,65 @@ class MyList(object):
             self.my_list.append(appended)
 
     def serialize(self):
+        """
+        Serialize Array with object in dictionary form
+        :return: Serialized array
+        """
         serialized = []
         for my_item in self.my_list:
             serialized.append(my_item.serialize())
         return serialized
 
     def get_list(self):
+        """
+        :return: Get current List
+        """
         return self.my_list
 
     def produce_from_multiple_entries(self, array):
+        """
+        Produce
+        :param array:
+        :return:
+        """
         for my_object in array:
             self.produce_from_single_entry(my_object)
 
     def produce_from_single_entry(self, my_object):
+        """
+        Produce from single entry. can be overwritten when using classes
+        :param my_object: Object that is appended
+        :return:
+        """
+        # check if there is an id, otherwise generate it
+        if not my_object.get_id():
+            my_object.set_id(self.get_highest_id() + 1)
         self.append_to_list(my_object)
 
+    def remove_by_attribute(self, key, value):
+        """
+        Remove Key by attribute with a key value pair
+        :param key: Key
+        :param value: Value
+        :return: Number of removed entries
+        """
+        removed = []
+        # build list that should be removed
+        for my_item in self.my_list:
+            if my_item.serialize().get(key) == value:
+                removed.append(my_item)
+        for removed_item in removed:
+            self.my_list.remove(removed_item)
+        return len(removed)
 
-# generate status with including data from database
+    def get_highest_id(self):
+        highest = -1
+        for my_item in self.my_list:
+            if my_item.get_id() > highest:
+                highest = my_item.get_id()
+        return highest
+
+
 class StatusList(MyList):
     """
     Manage Status in a List and add them
@@ -175,11 +260,19 @@ class StatusList(MyList):
         self.sensor_list = sensor_list
 
     def produce_from_single_entry(self, status_dictionary):
+        """
+        Overwriting method
+        :param status_dictionary: Status in serialized form
+        :return: Success
+        """
+        if not status_dictionary.get('sensor'):
+            return False
         sensor = self.sensor_list.get_sensors(int(status_dictionary.get('sensor')))
         if not sensor:
             return False
         status_object = Status(status_dictionary.get('id'), sensor, status_dictionary.get('name'), status_dictionary.get('data_type'), status_dictionary.get('request_digit'), status_dictionary.get('unit'), status_dictionary.get('prefix'), status_dictionary.get('postfix'))
         super(StatusList, self).produce_from_single_entry(status_object)
+        return True
 
 
 class SensorList(MyList):
@@ -190,10 +283,15 @@ class SensorList(MyList):
         super(SensorList, self).__init__()
 
     def produce_from_single_entry(self, sensor_dictionary):
-        sensor_object = Sensor(sensor_dictionary.get('port'), sensor_dictionary.get('rate'), sensor_dictionary.get('id'))
+        sensor_object = Sensor(sensor_dictionary.get('port'), sensor_dictionary.get('rate'), sensor_dictionary.get('id'), sensor_dictionary.get('name'))
         super(SensorList, self).produce_from_single_entry(sensor_object)
 
     def get_sensors(self, my_id = None):
+        """
+        Get all Sensors
+        :param my_id: If set, return Sensor with specific Id
+        :return: Sensor optionally with specific ID
+        """
         if not my_id:
             return self.my_list
         else:
@@ -207,10 +305,11 @@ class Manager:
     """
     Manages Lists and used to create new Items in those Lists
     """
-    def __init__(self, data_connector):
+    def __init__(self, data_connector, save_to_database=True):
         self._data_connector = data_connector
         self.sensor_list = SensorList()
         self.status_list = StatusList(self.sensor_list)
+        self.save_to_database = save_to_database
         self.produce_from_database()
 
     def produce_from_database(self):
@@ -220,59 +319,32 @@ class Manager:
         self.sensor_list.produce_from_multiple_entries(self._data_connector.get_sensor())
         self.status_list.produce_from_multiple_entries(self._data_connector.get_status())
 
-    def add_status(self, status_dictionary, save_to_database=True):
+    def add_status(self, status_dictionary):
+        """
+        Add a Single Status
+        :param status_dictionary: Status in Dictionary Form
+        :param save_to_database: Optionally save it to Database. Default is True
+        """
         self.status_list.produce_from_single_entry(status_dictionary)
-        print(self.status_list.serialize())
-        self._data_connector.replace_status_list(self.status_list.serialize())
+        if self.save_to_database:
+            self._data_connector.replace_status_list(self.status_list.serialize())
+
+    def remove_status(self, key, value):
+        self.status_list.remove_by_attribute(key, value)
+        if self.save_to_database:
+            self._data_connector.replace_status_list(self.status_list.serialize())
+
+    def remove_sensor(self, key, value):
+        self.status_list.remove_by_attribute(key, value)
+        if self.save_to_database:
+            self._data_connector.replace_sensor_list(self.sensor_list.serialize())
 
     def add_sensor(self, sensor_dictionary):
+        """
+        Add a Single Sensor
+        :param sensor_dictionary: Status in Dictionary Form
+        :param save_to_database: Optionally save it to Database. Default is True
+        """
         self.sensor_list.produce_from_single_entry(sensor_dictionary)
-
-
-
-class GetInterface:
-    def __init__(self, objectManager):
-        # assign the object manager
-        self.objectManager = objectManager
-
-    def _notFound(self):
-        return {'message': 'Did not find Sensor.'}
-
-    # get a status by a given id
-    def getStatusById(self, id, requestSensor = True):
-        for status in self._getStatusFromManager():
-            if(status.get_id() == id):
-                return status.request_status(requestSensor)
-        return self._notFound()
-
-    # get a status by a name
-    def getStatusByName(self, name, requestSensor = True):
-        for status in self._getStatusFromManager():
-            # take lower name
-            if(status.getStatusName().lower() == name.lower()):
-                return status.request_status(requestSensor)
-        return self._notFound()
-
-    def getStatusList(self, requestSensor = True):
-        _return = []
-        for status in self._getStatusFromManager():
-            _return.append(status.request_status(requestSensor))
-        return _return
-
-    def _getStatusFromManager(self):
-        return self.objectManager.getStatusList()
-
-
-class WriteInterface:
-    # get interface for reloading the configuration
-    def __init__(self, objectManager):
-        self.objectManager = objectManager
-
-    def addStatus(self, statusDict):
-        self.objectManager.add_status(statusDict)
-
-    def removeStatus(self, statusDict):
-        return self.objectManager.remove_status(statusDict)
-
-    def replaceStatus(self, statusDict):
-        return self.objectManager.replaceStatus(statusDict)
+        if self.save_to_database:
+            self._data_connector.replace_sensor_list(self.sensor_list.serialize())
