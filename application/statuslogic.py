@@ -239,11 +239,11 @@ class MyList(object):
         removed = []
         # build list that should be removed
         for my_item in self.my_list:
-            if my_item.serialize().get(key) == value:
+            if str(my_item.serialize().get(key)) == str(value):
                 removed.append(my_item)
         for removed_item in removed:
             self.my_list.remove(removed_item)
-        return len(removed)
+        return self.serialize()
 
     def get_highest_id(self):
         highest = -1
@@ -251,6 +251,13 @@ class MyList(object):
             if my_item.get_id() > highest:
                 highest = my_item.get_id()
         return highest
+
+    def get_by_attribute(self, key, value):
+        my_return = []
+        for my_item in self.my_list:
+            if str(my_item.serialize()[key]) == str(value):
+                my_return.append(my_item.serialize())
+        return my_return
 
 
 class StatusList(MyList):
@@ -274,13 +281,14 @@ class StatusList(MyList):
             return False
         status_object = Status(status_dictionary.get('id'), sensor, status_dictionary.get('name'), status_dictionary.get('data_type'), status_dictionary.get('request_digit'), status_dictionary.get('unit'), status_dictionary.get('prefix'), status_dictionary.get('postfix'))
         super(StatusList, self).produce_from_single_entry(status_object)
-        return True
+        return self.serialize()
 
     def get_current_status(self, key, value):
+        my_return = []
         for my_status in self.my_list:
-            if my_status.serialize()[key] == value:
-                return my_status.serialize(True)
-        return False
+            if str(my_status.serialize()[key]) == str(value):
+                my_return.append(my_status.serialize(True))
+        return my_return
 
 
 class SensorList(MyList):
@@ -327,24 +335,13 @@ class Manager:
         self.sensor_list.produce_from_multiple_entries(self._data_connector.get_sensor())
         self.status_list.produce_from_multiple_entries(self._data_connector.get_status())
 
-    def get_status_and_request_sensor_by_id(self, my_id):
+    def get_status_and_request_sensor(self, key, value):
         """
         Get Status and Request the underlying sensor with an id
         :param my_id: Id
         :return: dictionary object with additional value or error
         """
-        my_return = self.status_list.get_current_status('id', my_id)
-        if not my_return:
-            return self.error_with_status()
-        return my_return
-
-    def get_status_and_request_sensor_by_name(self, my_name):
-        """
-        Get Status and Request the underlying sensor with an id
-        :param my_name: Name
-        :return: dictionary object with additional value or error
-        """
-        my_return = self.status_list.get_current_status('name', my_name)
+        my_return = self.status_list.get_current_status(key, value)
         if not my_return:
             return self.error_with_status()
         return my_return
@@ -364,36 +361,49 @@ class Manager:
         """
         return self.sensor_list.serialize()
 
+    def get_status_by_attribute(self, key, value, request_status=False):
+        if request_status:
+            return self.get_status_and_request_sensor(key, value)
+        return self.status_list.get_by_attribute(key, value)
+
+    def get_sensor_by_attribute(self, key, value):
+        return self.sensor_list.get_by_attribute(key, value)
+
     def add_status(self, status_dictionary):
         """
         Add a Single Status
         :param status_dictionary: Status in Dictionary Form
         :param save_to_database: Optionally save it to Database. Default is True
         """
-        self.status_list.produce_from_single_entry(status_dictionary)
+        message = self.status_list.produce_from_single_entry(status_dictionary)
         if self.save_to_database:
             self._data_connector.replace_status_list(self.status_list.serialize())
+        if not message:
+            return {'message': 'could not create status, because sensor id is empty'}
+        return message
 
-    def remove_status(self, my_id):
+    def remove_status(self, key, value):
         """
         remove status by key and value and save to database
         :param my_id: id of the sensor
         :return:
         """
-        self.status_list.remove_by_attribute('id', my_id)
+        message = self.status_list.remove_by_attribute(key, value)
         if self.save_to_database:
             self._data_connector.replace_status_list(self.status_list.serialize())
+        return message
 
-    def remove_sensor(self, key, value):
+    def remove_sensor(self, my_id):
         """
         Remove Value with specific key value pair
         :param key: key
         :param value: value
         :return:
         """
-        self.status_list.remove_by_attribute(key, value)
+        number = self.sensor_list.remove_by_attribute('id', my_id)
         if self.save_to_database:
             self._data_connector.replace_sensor_list(self.sensor_list.serialize())
+        return number
 
     def add_sensor(self, sensor_dictionary):
         """
@@ -403,3 +413,4 @@ class Manager:
         self.sensor_list.produce_from_single_entry(sensor_dictionary)
         if self.save_to_database:
             self._data_connector.replace_sensor_list(self.sensor_list.serialize())
+        return self.sensor_list.serialize()

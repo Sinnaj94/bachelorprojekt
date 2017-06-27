@@ -1,86 +1,110 @@
-from flask import Flask, render_template, jsonify
-from flask_restful import abort, Api, Resource, reqparse
-#from flask_ask import Ask, statement, question
+from flask import Flask, jsonify, request
+from flask_ask import Ask, statement, question
 import statuslogic
 import datalogic
-import time
-from flask_marshmallow import Marshmallow
 
 
 class Main:
-	def __init__(self):
-		self.objectManager = statuslogic.ObjectManager(datalogic.DataConnector(datalogic.Database()))
-		self.getInterface = statuslogic.GetInterface(self.objectManager)
-		self.writeInterface = statuslogic.WriteInterface(self.objectManager)
+    def __init__(self):
+        self.manager = statuslogic.Manager(datalogic.Database().create_data_connector())
 
-connector = Main()
+connector = Main().manager
 
 # Flask Application
 app = Flask(__name__)
-ask = Ask(app, '/ask')
-api = Api(app, '/api')
 
-# Build Ask (Alexa) intent
+"""
+ALEXA CONFIGURATION
+"""
+ask = Ask(app, '/ask')
+
+
+# First Start of Alexa
 @ask.launch
 def connection():
     return question("Welchen Status?")
 
+
+# Ask Intent for Status Intent
 @ask.intent('StatusIntent')
-def getStatus(statusName, statusId):
-	currentStatus = None
-	if(statusName!='?' and statusName != None):
-		currentStatus = connector.getInterface.getStatusByName(statusName)
-	elif(statusId!='?' and statusId != None):
-		currentStatus = connector.getInterface.getStatusById(int(statusId))
-	else:
-		return statement("Bitte gib eine ID-Nummer oder einen Namen vom Statusgeraet an.")
-	if('message' in currentStatus):
-		return statement("Der Status mit den gegebenen Parametern wurde nicht gefunden oder es trat ein Problem auf.")
-	if(currentStatus['dataType'] == 'bool'):
-		return statement(currentStatus['prefix'] + " " + currentStatus['unit'].split('|')[int(currentStatus['value'])] + " " + currentStatus['postfix'])
-	return statement(currentStatus['prefix'] + " " + currentStatus['value']+ " " + currentStatus['unit'] + " " + currentStatus['postfix'])
+def get_status(status_name, status_id):
+    current_status = None
+    print(status_name)
+    print(status_id)
+    if status_name != '?' and status_name is not None:
+        current_status = connector.get_status_and_request_sensor('name', status_name)[0]
+    elif status_id != '?' and status_id is not None:
+        current_status = connector.get_status_and_request_sensor('id', status_id)[0]
+    else:
+        return question("Bitte gib eine ID-Nummer oder einen Namen vom Statusgeraet an.")
+    if 'message' in current_status:
+        return question("Sorry, konnte ich nicht finden.")
+    # if there is a bool, use the unit and split it
+    if current_status.get('data_type') == 'bool':
+        return question(current_status.get('prefix') + " " +
+                        current_status.get('unit').split('|')[int(current_status.get('value'))] + " " +
+                        current_status.get('postfix') + " Welchen Status nun?")
+    return question(current_status.get('prefix') + " " + current_status.get('value') + " " + current_status.get('unit')
+                    + " " + current_status.get('postfix') + " Welchen Status nun?")
 
-# Builds JSON API
-parser = reqparse.RequestParser()
-parser.add_argument("unit")
-parser.add_argument("prefix")
-parser.add_argument("postfix")
-parser.add_argument("sensor")
-parser.add_argument("requestDigit")
-parser.add_argument("name")
-parser.add_argument("dataType")
-class Default(Resource):
-	def get(self):
-		return jsonify({'version':'1.0', 'name': 'Sensor API', 'author': 'Jannis Jahr'})
-
-class StatusList(Resource):
-	def get(self):
-		return jsonify(connector.getInterface.getStatusList(False))
-	def post(self):
-		args = parser.parse_args()
-		connector.writeInterface.addStatus(args)
-		
-class Status(Resource):
-	def get(self, statusSelector):
-		if(statusSelector.isdigit()):
-			return jsonify(connector.getInterface.getStatusById(int(statusSelector)))
-		return jsonify(connector.getInterface.getStatusByName(statusSelector))
-	def put(self, statusSelector):
-		args = parser.parse_args()
-		if(statusSelector.isdigit()):
-			args['id'] = int(statusSelector)
-			return connector.writeInterface.replaceStatus(args)
-		args['name'] = statusSelector
-		return connector.writeInterface.replaceStatus(args)
-	def delete(self, statusSelector):
-		if(statusSelector.isdigit()):
-			return connector.writeInterface.removeStatus(connector.getInterface.getStatusById(int(statusSelector)))
-		return connector.writeInterface.removeStatus(connector.getInterface.getStatusByName(statusSelector))
+"""
+API CONFIGURATION
+"""
 
 
+@app.route('/status', methods=['GET', 'POST', 'DELETE'])
+def get_status_list():
+    if request.method == 'GET':
+        request_value = False
+        if str(request.args.get('request')) == "1":
+            request_value = True
+        if request.args.get('name'):
+            return jsonify(connector.get_status_by_attribute('name', request.args.get('name'), request_value))
+        if request.args.get('id'):
+            return jsonify(connector.get_status_by_attribute('id', request.args.get('id'), request_value))
+        return jsonify(connector.get_status_list())
+    elif request.method == 'POST':
+        return jsonify(connector.add_status(StatusModel().make_dictionary(request.args)))
+    elif request.method == 'DELETE':
+        if request.args.get('name'):
+            return jsonify(connector.remove_status('name', request.args.get('name')))
+        if request.args.get('id'):
+            return jsonify(connector.remove_status('id', request.args.get('id')))
+        return {'message': 'could not delete status because you have given no attributes name or id'}
 
-api.add_resource(Default, '/')
-api.add_resource(StatusList, '/status')
-api.add_resource(Status, '/status/<string:statusSelector>')
-# Run the application
+
+@app.route('/sensor', methods=['GET', 'POST'])
+def get_sensor_list():
+    if request.method == 'GET':
+        if request.args.get('name'):
+            return jsonify(connector.get_sensor_by_attribute('name', request.args.get('name')))
+        if request.args.get('id'):
+            return jsonify(connector.get_sensor_by_attribute('id', request.args.get('id')))
+        return jsonify(connector.get_sensor_list())
+    elif request.method == 'POST':
+        return jsonify(connector.add_sensor(SensorModel().make_dictionary(request.args)))
+
+
+class Model(object):
+    def __init__(self, attributes):
+        self.attributes = attributes
+
+    def make_dictionary(self, external_dictionary):
+        my_return = {}
+        for value in self.attributes:
+            my_return[value] = external_dictionary.get(value)
+        return my_return
+
+
+class SensorModel(Model):
+    def __init__(self):
+        super(SensorModel, self).__init__(['name', 'port', 'rate'])
+
+
+class StatusModel(Model):
+    def __init__(self):
+        super(StatusModel, self).__init__(['data_type', 'name', 'postfix', 'prefix', 'request_digit', 'sensor', 'unit'])
+"""
+RUN THE APPLICATION
+"""
 app.run(debug=False, host="0.0.0.0")
