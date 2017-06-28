@@ -12,15 +12,16 @@
  *
  */
 
-int potPin = 2;    // select the input pin for the potentiometer
-int switchPin = 2; // not analog
+int potPin = 2;    // select the input pin for the potentiometer (Analog)
+int switchPin = 2; // Select the input pin for the Button (Digital)
 int valButton = 0; // variable to store the value of button
-int val = 0;       // variable to store the value coming from the sensor
-int tempVal = -1;
-int serialRate = 9600;
-int updateRate = 200;
-String return_type = "number";
-char byteRead;
+int valPoti = 0; // variable to store the value coming from the Potentiometer
+int serialRate = 9600; // Baud Rate used by PySerial later
+// Update Rate
+int updateRate = 200; // Update rate in Miliseconds
+char requestDigit; // 
+
+// First start of Arduino
 void setup() {
   Serial.begin(serialRate);
   // define as switch button
@@ -30,39 +31,46 @@ void setup() {
   updateButtonValue();
 }
 
+// Loop function that gets executed after setup
 void loop() {
+  // Update Potentiometer and Button Value and check for a Request
   updatePotentiometerValue();
   updateButtonValue();
   checkRequestAndReturn();
-  delay(updateRate);                  // stop the program for some time
+  // Stop the program for some time
+  delay(updateRate);
 }
 
-void updateButtonValue() {
-  valButton = digitalRead(switchPin);
-}
-
+// Actual Request Pattern. Check if there was an Input and send the right Value via Serial Connection if there was one
 void checkRequestAndReturn() {
+  // Check if serial Connection is available and send answer, if there was a Serial.Read()
+  Serial.println(formatReturn(valPoti));
   if (Serial.available()) {
-    byteRead = Serial.read();
-    if(byteRead == '1') {
-      Serial.println(formatReturn(val));
-    }else if(byteRead == '2') {
+    requestDigit = Serial.read();
+    if(requestDigit == '1') {
+      Serial.println(formatReturn(valPoti));
+    }else if(requestDigit == '2') {
       Serial.println(formatReturn(invertValue(valButton)));
     }
   }
 }
 
+// Update the Potentiometer Value
 void updatePotentiometerValue() {
-  val = analogRead(potPin);    // read the value from the sensor
-  if(val!=tempVal) {
-    tempVal = val;
-  }
+  valPoti = analogRead(potPin);
 }
 
+// Update the Button Value
+void updateButtonValue() {
+  valButton = digitalRead(switchPin);
+}
+
+// Convert int to a String to Write it to the serial Connection
 String formatReturn(int returned_val) {
   return String(returned_val);
 }
 
+// Invert the Button, because it is 1 when off and 0 when on
 int invertValue(int value) {
   return value==1?0:1;
 }
