@@ -37,7 +37,7 @@ class Serializable(object):
     def serialize(self):
         raise NotImplementedError()
 
-
+# TODO: Hardware Sensor in die Datenschicht übernehmen
 class Sensor(Identifiable, Serializable):
     """
     Sensor item
@@ -163,9 +163,6 @@ class Status(Identifiable, Serializable):
         """
         return self.sensor.get_current_status(self.request_digit)
 
-    def get_id(self):
-        return self.my_id
-
     def serialize(self, sensor_request=False):
         return_value = {'id': self.my_id, 'unit': self.unit, 'sensor': self.sensor.my_id, 'name': self.name,
                         'prefix': self.prefix, 'postfix': self.postfix, 'request_digit': self.request_digit,
@@ -175,6 +172,7 @@ class Status(Identifiable, Serializable):
         return return_value
 
 
+# TODO: Change naming conventions
 class MyList(object):
     """
     Abstract Serializable List
@@ -302,6 +300,7 @@ class SensorList(MyList):
         sensor_object = Sensor(sensor_dictionary.get('port'), sensor_dictionary.get('rate'), sensor_dictionary.get('id'), sensor_dictionary.get('name'))
         super(SensorList, self).produce_from_single_entry(sensor_object)
 
+    # TODO: rausnehmen, da es schon existiert (siehe get_by_attribute('id',my_id)
     def get_sensors(self, my_id=None):
         """
         Get all Sensors
@@ -361,6 +360,7 @@ class Manager:
         """
         return self.sensor_list.serialize()
 
+    # TODO: merge classes
     def get_status_by_attribute(self, key, value, request_status=False):
         if request_status:
             return self.get_status_and_request_sensor(key, value)
