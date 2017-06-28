@@ -24,12 +24,22 @@ void setup() {
 
 // Loop function that gets executed after setup
 void loop() {
-  // Update Potentiometer and Button Value and check for a Request
+  // Update Values
   updatePotentiometerValue();
   updateButtonValue();
   checkRequestAndReturn();
   // Stop the program for some time
   delay(updateRate);
+}
+
+// Update the Potentiometer Value
+void updatePotentiometerValue() {
+  valPoti = analogRead(potPin);
+}
+
+// Update the Button Value
+void updateButtonValue() {
+  valButton = digitalRead(switchPin);
 }
 
 // Actual Request Pattern. Check if there was an Input and send the right Value via Serial Connection if there was one
@@ -43,16 +53,6 @@ void checkRequestAndReturn() {
       Serial.println(formatReturn(invertValue(valButton)));
     }
   }
-}
-
-// Update the Potentiometer Value
-void updatePotentiometerValue() {
-  valPoti = analogRead(potPin);
-}
-
-// Update the Button Value
-void updateButtonValue() {
-  valButton = digitalRead(switchPin);
 }
 
 // Convert int to a String to Write it to the serial Connection
