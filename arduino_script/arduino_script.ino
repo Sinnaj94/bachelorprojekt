@@ -35,7 +35,6 @@ void loop() {
 // Actual Request Pattern. Check if there was an Input and send the right Value via Serial Connection if there was one
 void checkRequestAndReturn() {
   // Check if serial Connection is available and send answer, if there was a Serial.Read()
-  Serial.println(formatReturn(valPoti));
   if (Serial.available()) {
     requestDigit = Serial.read();
     if(requestDigit == '1') {
