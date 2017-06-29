@@ -63,7 +63,7 @@ def get_status_list():
             return jsonify(connector.get_status('id', request.args.get('id'), request_value))
         return jsonify(connector.get_status())
     elif request.method == 'POST':
-        return jsonify(connector.add_status(StatusModel().make_dictionary(request.args)))
+        return jsonify(connector.add_status(StatusModel().make_dictionary(request.form)))
     elif request.method == 'DELETE':
         if request.args.get('name'):
             return jsonify(connector.remove_status('name', request.args.get('name')))
@@ -72,7 +72,7 @@ def get_status_list():
         return {'message': 'could not delete status because you have given no attributes name or id'}
 
 
-@app.route('/api/sensor', methods=['GET', 'POST'])
+@app.route('/api/sensor', methods=['GET', 'POST', 'DELETE'])
 def get_sensor_list():
     if request.method == 'GET':
         if request.args.get('name'):
@@ -81,15 +81,18 @@ def get_sensor_list():
             return jsonify(connector.get_sensor('id', request.args.get('id')))
         return jsonify(connector.get_sensor())
     elif request.method == 'POST':
-        return jsonify(connector.add_sensor(SensorModel().make_dictionary(request.args)))
-
-
+        return jsonify(connector.add_sensor(SensorModel().make_dictionary(request.form)))
+    elif request.method == 'DELETE':
+        return jsonify(connector.remove_sensor(request.args.get('id')))
 """
 HTML
 """
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 class Model(object):
     def __init__(self, attributes):
@@ -113,4 +116,4 @@ class StatusModel(Model):
 """
 RUN THE APPLICATION
 """
-app.run(debug=False, host="0.0.0.0")
+app.run(debug=True, host="0.0.0.0")

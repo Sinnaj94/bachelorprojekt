@@ -210,8 +210,18 @@ class SensorList(MyList):
         super(SensorList, self).__init__()
 
     def produce_from_single_entry(self, sensor_dictionary):
+        if not sensor_dictionary.get('port') or not sensor_dictionary.get('rate'):
+            return False
         sensor_object = Sensor(sensor_dictionary.get('port'), sensor_dictionary.get('rate'), sensor_dictionary.get('id'), sensor_dictionary.get('name'))
         super(SensorList, self).produce_from_single_entry(sensor_object)
+        return self.my_list
+
+    def save_to_remove(self, my_id, status_list):
+        selected_sensor = self.get_by_attribute('id', my_id)[0]
+        for status in status_list:
+            if status['sensor'] == selected_sensor['id']:
+                return False
+        return True
 
     def get_sensors(self, my_id=None):
         """
@@ -302,7 +312,9 @@ class Manager:
         :param value: value
         :return:
         """
-        number = self.sensor_list.remove_by_attribute('id', my_id)
+        if not self.sensor_list.save_to_remove(my_id, self.status_list.serialize()):
+            return {'message': 'could not remove sensor, because it has active status items'}
+        self.sensor_list.remove_by_attribute('id', my_id)
         if self.save_to_database:
             self._data_connector.replace_sensor_list(self.sensor_list.serialize())
-        return number
+        return self.sensor_list.serialize()

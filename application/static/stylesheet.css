@@ -1,0 +1,168 @@
+body {
+	font-family: Helvetica Neue;
+	margin: 0;
+}
+
+header {
+	background: black;
+	padding: 20px;
+}
+
+.between-sign {
+	color: white;
+}
+
+.outer-container {
+	max-width: 800px;
+	margin: auto;
+	padding: 10px;
+}
+
+h1 {
+	text-align: center;
+}
+
+h2 {
+	margin-left: 5px;
+}
+
+ul {
+	list-style-type: none;
+	margin: 0;
+}
+
+.switch {
+	display: flex;
+	justify-content: center;
+	margin: 0;
+	padding: 0;
+}
+
+.switch li {
+	padding: 10px;
+}
+
+.switch a {
+	color: white;
+	padding: 10px;
+	background: slategrey;
+	border-radius: 5px;
+	transition: all .3s;
+}
+
+.switch a:hover {
+	background: lightslategrey;
+}
+
+a {
+	text-decoration: none;
+}
+
+#status {
+	display: none;
+}
+
+#status:target {
+	display: block;
+}
+
+#add-status {
+	display: none;
+}
+
+#add-status:target {
+	display: block;
+}
+
+#add-sensor {
+	display: none;
+}
+
+#add-sensor:target {
+	display: block;
+}
+
+#sensor {
+	display: none;
+}
+
+#sensor:target {
+	display: block;
+}
+
+.add {
+	color: green;
+}
+
+.list {
+	border-top: 1px solid grey;
+	padding: 0;
+}
+
+.list li {
+	border-bottom: 1px solid grey;
+	padding: 10px 5px;
+}
+
+.data {
+	padding: 0;
+}
+
+.data li {
+	padding: 10px 0;
+}
+
+.item-list {
+	padding: 0;
+	display: flex;
+	overflow: scroll;
+}
+
+.item-list li {
+	padding: 10px 20px;
+	border: none;
+}
+
+.item-list>li:not(:last-child) {
+	border-right: 1px solid lightgrey;
+}
+
+.item-list .remove {
+	color: red;
+}
+
+.upper {
+	font-weight: bold;
+}
+
+form {
+	display: flex;
+	justify-content: center;
+}
+
+.descriptor {
+	margin-right: 10px;
+}
+
+.attributes-list {
+	padding: 0;
+}
+
+.fa {
+	margin-right: 5px;
+}
+
+.attributes-list li {
+	display: flex;
+	justify-content: space-between;
+	padding: 5px;
+}
+
+.get-value {
+	color: cornflowerblue;
+}
+
+.attributes-list li button {
+	width: 100%;
+	height: 30px;
+}
