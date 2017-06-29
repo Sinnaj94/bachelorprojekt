@@ -1,7 +1,4 @@
-import serial
-import time
-import threading
-from datalogic import Database, DataConnector
+from datalogic import DataConnector, SensorConnection
 
 
 class Identifiable(object):
@@ -12,15 +9,18 @@ class Identifiable(object):
         self.my_id = my_id
         self.name = name
 
+    def set_id(self, my_id):
+        self.my_id = my_id
+
+    def set_name(self, name):
+        self.name = name
+
     def get_id(self):
         """
         Return ID
         :return: ID
         """
         return self.my_id
-
-    def set_id(self, my_id):
-        self.my_id = my_id
 
     def get_name(self):
         """
@@ -37,8 +37,8 @@ class Serializable(object):
     def serialize(self):
         raise NotImplementedError()
 
-# TODO: Hardware Sensor in die Datenschicht übernehmen
-class Sensor(Identifiable, Serializable):
+
+class Sensor(SensorConnection, Serializable, Identifiable):
     """
     Sensor item
     """
@@ -49,95 +49,9 @@ class Sensor(Identifiable, Serializable):
         :param rate: Baud Rate of Sensor
         :param my_id: Id of the Sensor
         """
-        super(Sensor, self).__init__(my_id, name)
-        self.port = port
-        self.rate = rate
-        self.serial = self.get_serial()
-        self.thread = None
-        self.status = None
-        self.timeout = .1
-        self.max_number_of_requests = 5
-        self.start_listening_thread()
-        self.request_done = False
-
-    def disconnect(self):
-        self.serial.close()
-
-    def get_serial(self):
-        """
-        Build the Serial Configuration using pySerial
-        :return: pySerial Object or None if not available
-        """
-        try:
-            return serial.Serial(self.port, self.rate)
-        except serial.SerialException:
-            print("Serial Device on port " + self.port + " could not be connected.")
-            return None
-
-    def listen_to_changes(self):
-        """
-        Listen to a signal of the Sensor and write them into the status variable
-        """
-        while self.serial is not None:
-            try:
-                current_status = self.serial.readline()
-                # only update status, if a line could be read
-                if not current_status:
-                    return False
-                self.status = current_status.splitlines()[0]
-                self.request_done = True
-            except serial.SerialException:
-                self.status = None
-
-    def start_listening_thread(self):
-        """
-        start a subthread with listen_to_changes
-        """
-        self.thread = threading.Thread(target=self.listen_to_changes, args=())
-        self.thread.daemon = True
-        self.thread.start()
-
-    def request_status_once(self, request_digit):
-        """
-        Request the status using a request digit
-        :param request_digit: request digit as a char, that can be sent to arduino
-        :return:
-        """
-        if self.serial is not None:
-            try:
-                self.request_done = False
-                self.serial.write(str(request_digit))
-            except serial.SerialException:
-                pass
-
-    def make_status_request(self, request_digit):
-        """
-        Make multiple status request with a timeout
-        :param request_digit: 
-        :return: 
-        """
-        self.request_done = False
-        number_of_requests = 0
-        # make all requests0
-        while not self.request_done and number_of_requests < self.max_number_of_requests:
-            # make a request and wait for a specific time
-            self.request_status_once(request_digit)
-            number_of_requests += 1
-            time.sleep(self.timeout)
-        if not self.request_done:
-            return False
-        return self.status
-
-    def get_current_status(self, request_digit):
-        """
-        get the current status by making the statusrequest
-        :param request_digit: char request digit, the pc should send to arduino
-        :return: current status. if not given, it is false
-        """
-        return self.make_status_request(request_digit)
-
-    def get_id(self):
-        return self.my_id
+        super(Sensor, self).__init__(port, rate)
+        self.my_id = my_id
+        self.name = name
 
     def serialize(self):
         return {'id': self.my_id, 'port': self.port, 'rate': self.rate, 'name': self.name}
@@ -172,7 +86,6 @@ class Status(Identifiable, Serializable):
         return return_value
 
 
-# TODO: Change naming conventions
 class MyList(object):
     """
     Abstract Serializable List
@@ -180,16 +93,16 @@ class MyList(object):
     def __init__(self):
         self.my_list = []
 
-    def append_to_list(self, appended):
+    def append_to_list(self, obj):
         """
         Append a List or a single item to the list
-        :param appended: List or Object
+        :param obj: List or Object
         """
-        if isinstance(appended, list):
-            for my_item in appended:
+        if isinstance(obj, list):
+            for my_item in obj:
                 self.my_list.append(my_item)
         else:
-            self.my_list.append(appended)
+            self.my_list.append(obj)
 
     def serialize(self):
         """
@@ -207,25 +120,25 @@ class MyList(object):
         """
         return self.my_list
 
-    def produce_from_multiple_entries(self, array):
+    def produce_from_multiple_entries(self, obj_array):
         """
         Produce
-        :param array:
+        :param obj_array:
         :return:
         """
-        for my_object in array:
-            self.produce_from_single_entry(my_object)
+        for obj in obj_array:
+            self.produce_from_single_entry(obj)
 
-    def produce_from_single_entry(self, my_object):
+    def produce_from_single_entry(self, obj):
         """
         Produce from single entry. can be overwritten when using classes
-        :param my_object: Object that is appended
+        :param obj: Object that is appended
         :return:
         """
         # check if there is an id, otherwise generate it
-        if not my_object.get_id():
-            my_object.set_id(self.get_highest_id() + 1)
-        self.append_to_list(my_object)
+        if not obj.get_id():
+            obj.set_id(self.get_highest_id() + 1)
+        self.append_to_list(obj)
 
     def remove_by_attribute(self, key, value):
         """
@@ -236,9 +149,9 @@ class MyList(object):
         """
         removed = []
         # build list that should be removed
-        for my_item in self.my_list:
-            if str(my_item.serialize().get(key)) == str(value):
-                removed.append(my_item)
+        for obj in self.my_list:
+            if str(obj.serialize().get(key)) == str(value):
+                removed.append(obj)
         for removed_item in removed:
             self.my_list.remove(removed_item)
         return self.serialize()
@@ -252,9 +165,9 @@ class MyList(object):
 
     def get_by_attribute(self, key, value):
         my_return = []
-        for my_item in self.my_list:
-            if str(my_item.serialize()[key]) == str(value):
-                my_return.append(my_item.serialize())
+        for obj in self.my_list:
+            if str(obj.serialize()[key]) == str(value):
+                my_return.append(obj.serialize())
         return my_return
 
 
@@ -300,7 +213,6 @@ class SensorList(MyList):
         sensor_object = Sensor(sensor_dictionary.get('port'), sensor_dictionary.get('rate'), sensor_dictionary.get('id'), sensor_dictionary.get('name'))
         super(SensorList, self).produce_from_single_entry(sensor_object)
 
-    # TODO: rausnehmen, da es schon existiert (siehe get_by_attribute('id',my_id)
     def get_sensors(self, my_id=None):
         """
         Get all Sensors
@@ -320,8 +232,8 @@ class Manager:
     """
     Manages Lists and used to create new Items in those Lists
     """
-    def __init__(self, data_connector, save_to_database=True):
-        self._data_connector = data_connector
+    def __init__(self, save_to_database=True):
+        self._data_connector = DataConnector()
         self.sensor_list = SensorList()
         self.status_list = StatusList(self.sensor_list)
         self.save_to_database = save_to_database
@@ -334,39 +246,19 @@ class Manager:
         self.sensor_list.produce_from_multiple_entries(self._data_connector.get_sensor())
         self.status_list.produce_from_multiple_entries(self._data_connector.get_status())
 
-    def get_status_and_request_sensor(self, key, value):
-        """
-        Get Status and Request the underlying sensor with an id
-        :param my_id: Id
-        :return: dictionary object with additional value or error
-        """
-        my_return = self.status_list.get_current_status(key, value)
-        if not my_return:
-            return self.error_with_status()
-        return my_return
-
     def error_with_status(self):
         return {'message': 'There has been an Error with the Status. The Sensor is probably configured wrong or idle.'}
 
-    def get_status_list(self):
-        """
-        :return: Dictionary of statuslist
-        """
-        return self.status_list.serialize()
-
-    def get_sensor_list(self):
-        """
-        :return: Dictionary of sensorlist
-        """
-        return self.sensor_list.serialize()
-
-    # TODO: merge classes
-    def get_status_by_attribute(self, key, value, request_status=False):
+    def get_status(self, key=None, value=None, request_status=False):
+        if key is None:
+            return self.status_list.serialize()
         if request_status:
-            return self.get_status_and_request_sensor(key, value)
+            return self.status_list.get_current_status(key, value)
         return self.status_list.get_by_attribute(key, value)
 
-    def get_sensor_by_attribute(self, key, value):
+    def get_sensor(self, key=None, value=None):
+        if key is None:
+            return self.sensor_list.serialize()
         return self.sensor_list.get_by_attribute(key, value)
 
     def add_status(self, status_dictionary):
@@ -393,6 +285,16 @@ class Manager:
             self._data_connector.replace_status_list(self.status_list.serialize())
         return message
 
+    def add_sensor(self, sensor_dictionary):
+        """
+        Add a Single Sensor
+        :param sensor_dictionary: Status in Dictionary Form
+        """
+        self.sensor_list.produce_from_single_entry(sensor_dictionary)
+        if self.save_to_database:
+            self._data_connector.replace_sensor_list(self.sensor_list.serialize())
+        return self.sensor_list.serialize()
+
     def remove_sensor(self, my_id):
         """
         Remove Value with specific key value pair
@@ -404,13 +306,3 @@ class Manager:
         if self.save_to_database:
             self._data_connector.replace_sensor_list(self.sensor_list.serialize())
         return number
-
-    def add_sensor(self, sensor_dictionary):
-        """
-        Add a Single Sensor
-        :param sensor_dictionary: Status in Dictionary Form
-        """
-        self.sensor_list.produce_from_single_entry(sensor_dictionary)
-        if self.save_to_database:
-            self._data_connector.replace_sensor_list(self.sensor_list.serialize())
-        return self.sensor_list.serialize()

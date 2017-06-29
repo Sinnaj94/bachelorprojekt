@@ -1,12 +1,11 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_ask import Ask, statement, question
 import statuslogic
-import datalogic
 
 
 class Main:
     def __init__(self):
-        self.manager = statuslogic.Manager(datalogic.Database().create_data_connector())
+        self.manager = statuslogic.Manager()
 
 connector = Main().manager
 
@@ -32,9 +31,9 @@ def get_status(status_name, status_id):
     print(status_name)
     print(status_id)
     if status_name != '?' and status_name is not None:
-        current_status = connector.get_status_and_request_sensor('name', status_name)[0]
+        current_status = connector.get_status('name', status_name, True)[0]
     elif status_id != '?' and status_id is not None:
-        current_status = connector.get_status_and_request_sensor('id', status_id)[0]
+        current_status = connector.get_status('id', status_id, True)[0]
     else:
         return question("Bitte gib eine ID-Nummer oder einen Namen vom Statusgeraet an.")
     if 'message' in current_status:
@@ -52,17 +51,17 @@ API CONFIGURATION
 """
 
 
-@app.route('/status', methods=['GET', 'POST', 'DELETE'])
+@app.route('/api/status', methods=['GET', 'POST', 'DELETE'])
 def get_status_list():
     if request.method == 'GET':
         request_value = False
         if str(request.args.get('request')) == "1":
             request_value = True
         if request.args.get('name'):
-            return jsonify(connector.get_status_by_attribute('name', request.args.get('name'), request_value))
+            return jsonify(connector.get_status('name', request.args.get('name'), request_value))
         if request.args.get('id'):
-            return jsonify(connector.get_status_by_attribute('id', request.args.get('id'), request_value))
-        return jsonify(connector.get_status_list())
+            return jsonify(connector.get_status('id', request.args.get('id'), request_value))
+        return jsonify(connector.get_status())
     elif request.method == 'POST':
         return jsonify(connector.add_status(StatusModel().make_dictionary(request.args)))
     elif request.method == 'DELETE':
@@ -73,17 +72,24 @@ def get_status_list():
         return {'message': 'could not delete status because you have given no attributes name or id'}
 
 
-@app.route('/sensor', methods=['GET', 'POST'])
+@app.route('/api/sensor', methods=['GET', 'POST'])
 def get_sensor_list():
     if request.method == 'GET':
         if request.args.get('name'):
-            return jsonify(connector.get_sensor_by_attribute('name', request.args.get('name')))
+            return jsonify(connector.get_sensor('name', request.args.get('name')))
         if request.args.get('id'):
-            return jsonify(connector.get_sensor_by_attribute('id', request.args.get('id')))
-        return jsonify(connector.get_sensor_list())
+            return jsonify(connector.get_sensor('id', request.args.get('id')))
+        return jsonify(connector.get_sensor())
     elif request.method == 'POST':
         return jsonify(connector.add_sensor(SensorModel().make_dictionary(request.args)))
 
+
+"""
+HTML
+"""
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 class Model(object):
     def __init__(self, attributes):

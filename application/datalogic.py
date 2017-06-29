@@ -2,15 +2,18 @@ import json
 from shutil import copyfile
 import os
 import sys
+import serial
+import threading
+import time
 
 
 class DataConnector:
-    def __init__(self, database):
+    def __init__(self):
         """
         Constructor
         :param database: The Database object
         """
-        self._database = database
+        self._database = Database()
 
     def get_status(self, status_id=None):
         """
@@ -63,6 +66,112 @@ class DataConnector:
             self._database.write_configuration('sensor_list', sensor_list, False)
             return True
         return False
+
+
+class SensorConnection(object):
+    """
+    Sensor item
+    """
+    def __init__(self, port, rate):
+        """
+        Constructor
+        :param port: Port, that pyserial should access
+        :param rate: Baud Rate of Sensor
+        :param my_id: Id of the Sensor
+        """
+        self.port = port
+        self.rate = rate
+        self.serial = self.get_serial()
+        self.thread = None
+        self.status = None
+        self.timeout = .1
+        self.max_number_of_requests = 5
+        self.thread_end = False
+        try:
+            self.start_listening_thread()
+        except(KeyboardInterrupt, SystemExit):
+            self.thread_end = True
+        self.request_done = False
+
+    def disconnect(self):
+        """
+        Close the Serial connection.
+        """
+        self.serial.close()
+
+    def get_serial(self):
+        """
+        Build the Serial Configuration using pySerial
+        :return: pySerial Object or None if not available
+        """
+        try:
+            return serial.Serial(self.port, self.rate)
+        except serial.SerialException:
+            print("Serial Device on port " + self.port + " could not be connected.")
+            return None
+
+    def listen_to_changes(self):
+        """
+        Listen to a signal of the Sensor and write them into the status variable
+        """
+        while self.serial is not None or self.thread_end:
+            try:
+                current_status = self.serial.readline()
+                # only update status, if a line could be read
+                if not current_status:
+                    return False
+                self.status = current_status.splitlines()[0]
+                self.request_done = True
+            except serial.SerialException:
+                self.status = None
+
+
+    def start_listening_thread(self):
+        """
+        start a subthread with listen_to_changes
+        """
+        self.thread = threading.Thread(target=self.listen_to_changes, args=())
+        self.thread.daemon = True
+        self.thread.start()
+
+    def request_status_once(self, request_digit):
+        """
+        Request the status using a request digit
+        :param request_digit: request digit as a char, that can be sent to arduino
+        :return:
+        """
+        if self.serial is not None:
+            try:
+                self.request_done = False
+                self.serial.write(str(request_digit))
+            except serial.SerialException:
+                pass
+
+    def make_status_request(self, request_digit):
+        """
+        Make multiple status request with a timeout
+        :param request_digit:
+        :return:
+        """
+        self.request_done = False
+        number_of_requests = 0
+        # make all requests0
+        while not self.request_done and number_of_requests < self.max_number_of_requests:
+            # make a request and wait for a specific time
+            self.request_status_once(request_digit)
+            number_of_requests += 1
+            time.sleep(self.timeout)
+        if not self.request_done:
+            return False
+        return self.status
+
+    def get_current_status(self, request_digit):
+        """
+        get the current status by making the statusrequest
+        :param request_digit: char request digit, the pc should send to arduino
+        :return: current status. if not given, it is false
+        """
+        return self.make_status_request(request_digit)
 
 
 class Database:
