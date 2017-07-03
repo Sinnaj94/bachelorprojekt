@@ -149,7 +149,7 @@ form {
 }
 
 .fa {
-	margin-right: 5px;
+    padding: 0 5px;
 }
 
 .attributes-list li {
@@ -160,6 +160,14 @@ form {
 
 .get-value {
 	color: cornflowerblue;
+}
+
+.item-list li {
+    white-space: nowrap;
+}
+
+.remove-container,.get-value-container {
+    font-size: 20px;
 }
 
 .attributes-list li button {

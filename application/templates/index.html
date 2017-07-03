@@ -36,10 +36,17 @@
     	</div>
     	<div id="add-status">
     		<h1>Add a new Status</h1>
-    		<form id="status-form" action="/api/status" method="post">
+    		<form id="status-form" action="/api/status" method="post" data-href="#status">
     			<ul class="attributes-list">
     				<li>
-	    				<span class="descriptor">Name</span><input type="text" value="Briefkasten" name="name">
+	    				<span class="descriptor">Name</span>
+						<select name="name">
+                            <option value="thermometer">Thermometer</option>
+                            <option value="tuer">Tür</option>
+                            <option value="kuehlschrank">Kühlschrank</option>
+                            <option value="briefkasten">Briefkasten</option>
+                            <option value="licht">Licht</option>
+						</select>
 	    			</li>
 	    			<li>
 	    				<span class="descriptor">Request Digit</span><input type="text" name="request_digit" value="1">
@@ -57,17 +64,17 @@
 	    				<span class="number" value="1">Sensor</span><select id="sensor-mapping" name="sensor"></select>
 	    			</li>
 	    			<li>
-	    				<span class="descriptor">Unit</span><input value="neue Briefe|keine neuen Briefe" name="unit"></input>
+	    				<span class="descriptor">Unit</span><input value="neue Briefe|keine neuen Briefe" name="unit">
 	    			</li>
 	    			<li>
-	    				<button type="submit">Submit</button>
+	    				<button type="submit">Submit<i class="fa fa-check" aria-hidden="true"></i></button>
 	    			</li>
     			</ul>
     		</form>
     	</div>
     	<div id="add-sensor">
     		<h1>Add a new Sensor</h1>
-    		<form id="sensor-form" action="/api/sensor" method="post">
+    		<form id="sensor-form" action="/api/sensor" method="post" data-href="#sensor">
     			<ul class="attributes-list">
     				<li>
 	    				<span class="descriptor">Name</span><input type="text" value="My Sensor" name="name">
@@ -79,7 +86,7 @@
 	    				<span class="descriptor">Port</span><input type="text" name="port" value="/dev/">
 	    			</li>
 	    			<li>
-	    				<button type="submit">Submit</button>
+	    				<button type="submit">Submit<i class="fa fa-check" aria-hidden="true"></i></button>
 	    			</li>
     			</ul>
     		</form>
