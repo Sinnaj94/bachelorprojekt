@@ -32,7 +32,7 @@ class Identifiable(object):
 
 class Serializable(object):
     """
-    Abstract class, where Serialize should be overwritten, otherwise you get an error
+    Interface, where Serialize should be overwritten
     """
     def serialize(self):
         raise NotImplementedError()
@@ -50,8 +50,8 @@ class Sensor(SensorConnection, Serializable, Identifiable):
         :param my_id: Id of the Sensor
         """
         super(Sensor, self).__init__(port, rate)
-        self.my_id = my_id
-        self.name = name
+        self.set_id(my_id)
+        self.set_name(name)
 
     def serialize(self):
         return {'id': self.my_id, 'port': self.port, 'rate': self.rate, 'name': self.name}

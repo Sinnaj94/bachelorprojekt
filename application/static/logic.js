@@ -4,6 +4,9 @@ $(document).ready(function() {
 	});
 	fill_out_sensor_list();
 	$(".refresh").click();
+	$("#status-form,#sensor-form").submit(function(event) {
+		event.preventDefault();
+	});
 });
 
 function refresh_values(e) {

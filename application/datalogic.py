@@ -125,7 +125,6 @@ class SensorConnection(object):
             except serial.SerialException:
                 self.status = None
 
-
     def start_listening_thread(self):
         """
         start a subthread with listen_to_changes
