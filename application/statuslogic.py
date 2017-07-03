@@ -154,7 +154,7 @@ class MyList(object):
                 removed.append(obj)
         for removed_item in removed:
             self.my_list.remove(removed_item)
-        return self.serialize()
+        return len(removed)
 
     def get_highest_id(self):
         highest = -1
@@ -192,7 +192,7 @@ class StatusList(MyList):
             return False
         status_object = Status(status_dictionary.get('id'), sensor, status_dictionary.get('name'), status_dictionary.get('data_type'), status_dictionary.get('request_digit'), status_dictionary.get('unit'), status_dictionary.get('prefix'), status_dictionary.get('postfix'))
         super(StatusList, self).produce_from_single_entry(status_object)
-        return self.serialize()
+        return True
 
     def get_current_status(self, key, value):
         my_return = []
@@ -214,7 +214,7 @@ class SensorList(MyList):
             return False
         sensor_object = Sensor(sensor_dictionary.get('port'), sensor_dictionary.get('rate'), sensor_dictionary.get('id'), sensor_dictionary.get('name'))
         super(SensorList, self).produce_from_single_entry(sensor_object)
-        return self.my_list
+        return True
 
     def save_to_remove(self, my_id, status_list):
         selected_sensor = self.get_by_attribute('id', my_id)[0]
@@ -277,12 +277,10 @@ class Manager:
         :param status_dictionary: Status in Dictionary Form
         :param save_to_database: Optionally save it to Database. Default is True
         """
-        message = self.status_list.produce_from_single_entry(status_dictionary)
+        success = self.status_list.produce_from_single_entry(status_dictionary)
         if self.save_to_database:
             self._data_connector.replace_status_list(self.status_list.serialize())
-        if not message:
-            return {'message': 'could not create status, because sensor id is empty'}
-        return message
+        return {'success': success}
 
     def remove_status(self, key, value):
         """
@@ -290,20 +288,20 @@ class Manager:
         :param my_id: id of the sensor
         :return:
         """
-        message = self.status_list.remove_by_attribute(key, value)
+        length = self.status_list.remove_by_attribute(key, value)
         if self.save_to_database:
             self._data_connector.replace_status_list(self.status_list.serialize())
-        return message
+        return {'length': length}
 
     def add_sensor(self, sensor_dictionary):
         """
         Add a Single Sensor
         :param sensor_dictionary: Status in Dictionary Form
         """
-        self.sensor_list.produce_from_single_entry(sensor_dictionary)
+        success = self.sensor_list.produce_from_single_entry(sensor_dictionary)
         if self.save_to_database:
             self._data_connector.replace_sensor_list(self.sensor_list.serialize())
-        return self.sensor_list.serialize()
+        return {'success': success}
 
     def remove_sensor(self, my_id):
         """
