@@ -24,15 +24,10 @@ Hier ist eine [vollständige Anleitung](http://python-guide-pt-br.readthedocs.io
 
 #### Starten des Api-Servers ####
 
-Mit dem Befehl ```sudo python api.py``` kann der Server gestartet werden. Es sollte eine ähnliche Meldung wie folgende erscheinen:
-
-``` 
-* Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
-* Restarting with stat
-* Debugger is active!
-* Debugger PIN: 123-456-789
+Mit dem Kommandozeilenbefehl ```python interfacelogic.py``` kann der Server gestartet werden. Es sollte eine ähnliche Meldung wie folgende erscheinen:
 ```
-
+ * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
+```
 #### Beispielinterface
 
 Ein Beispielinterface, in dem die einzelnen Konfigurationen geändert werden können, kann unter [localhost:5000](localhost:5000) abgerufen werden.
