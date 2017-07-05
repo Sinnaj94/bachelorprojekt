@@ -30,7 +30,8 @@ Mit dem Kommandozeilenbefehl ```python interfacelogic.py``` kann der Server gest
 ```
 #### Beispielinterface
 
-Ein Beispielinterface, in dem die einzelnen Konfigurationen geändert werden können, kann unter [localhost:5000](http://localhost:5000) abgerufen werden.
+Ein Beispielinterface, in dem die einzelnen Konfigurationen geändert werden können, kann unter [localhost:5000](http://localhost:5000) abgerufen werden. Die Api für Alexa und das Mobilgerät sind unter dem Unterpfad /api und /ask zu finden.
+
 
 ### Credits ###
 
