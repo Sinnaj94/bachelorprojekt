@@ -7,7 +7,7 @@ class Main:
     def __init__(self):
         self.manager = statuslogic.Manager()
 
-connector = Main().manager
+manager = Main().manager
 
 # Flask Application
 app = Flask(__name__)
@@ -31,12 +31,12 @@ def get_status(status_name, status_id):
     print(status_name)
     print(status_id)
     if status_name != '?' and status_name is not None:
-        current_status = connector.get_status('name', status_name, True)[0]
+        current_status = manager.get_status('name', status_name, True)
     elif status_id != '?' and status_id is not None:
-        current_status = connector.get_status('id', status_id, True)[0]
+        current_status = manager.get_status('id', status_id, True)
     else:
         return question("Bitte gib eine ID-Nummer oder einen Namen vom Statusgeraet an.")
-    if 'message' in current_status:
+    if not current_status:
         return question("Sorry, konnte ich nicht finden.")
     # if there is a bool, use the unit and split it
     if current_status.get('data_type') == 'bool':
@@ -58,17 +58,17 @@ def get_status_list():
         if str(request.args.get('request')) == "1":
             request_value = True
         if request.args.get('name'):
-            return jsonify(connector.get_status('name', request.args.get('name'), request_value))
+            return jsonify(manager.get_status('name', request.args.get('name'), request_value))
         if request.args.get('id'):
-            return jsonify(connector.get_status('id', request.args.get('id'), request_value))
-        return jsonify(connector.get_status())
+            return jsonify(manager.get_status('id', request.args.get('id'), request_value))
+        return jsonify(manager.get_status())
     elif request.method == 'POST':
-        return jsonify(connector.add_status(StatusModel().make_dictionary(request.form)))
+        return jsonify(manager.add_status(StatusModel().make_dictionary(request.form)))
     elif request.method == 'DELETE':
         if request.args.get('name'):
-            return jsonify(connector.remove_status('name', request.args.get('name')))
+            return jsonify(manager.remove_status('name', request.args.get('name')))
         if request.args.get('id'):
-            return jsonify(connector.remove_status('id', request.args.get('id')))
+            return jsonify(manager.remove_status('id', request.args.get('id')))
         return {'message': 'could not delete status because you have given no attributes name or id'}
 
 
@@ -76,14 +76,14 @@ def get_status_list():
 def get_sensor_list():
     if request.method == 'GET':
         if request.args.get('name'):
-            return jsonify(connector.get_sensor('name', request.args.get('name')))
+            return jsonify(manager.get_sensor('name', request.args.get('name')))
         if request.args.get('id'):
-            return jsonify(connector.get_sensor('id', request.args.get('id')))
-        return jsonify(connector.get_sensor())
+            return jsonify(manager.get_sensor('id', request.args.get('id')))
+        return jsonify(manager.get_sensor())
     elif request.method == 'POST':
-        return jsonify(connector.add_sensor(SensorModel().make_dictionary(request.form)))
+        return jsonify(manager.add_sensor(SensorModel().make_dictionary(request.form)))
     elif request.method == 'DELETE':
-        return jsonify(connector.remove_sensor(request.args.get('id')))
+        return jsonify(manager.remove_sensor(request.args.get('id')))
 """
 HTML
 """
@@ -117,4 +117,4 @@ class StatusModel(Model):
 RUN THE APPLICATION
 """
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+    app.run(debug=False, host="0.0.0.0")

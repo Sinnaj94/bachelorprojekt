@@ -195,11 +195,11 @@ class StatusList(MyList):
         return True
 
     def get_current_status(self, key, value):
-        my_return = []
         for my_status in self.my_list:
             if str(my_status.serialize()[key]) == str(value):
-                my_return.append(my_status.serialize(True))
-        return my_return
+                _return = my_status.serialize(True)
+                return _return
+        return False
 
 
 class SensorList(MyList):
@@ -256,9 +256,6 @@ class Manager:
         self.sensor_list.produce_from_multiple_entries(self._data_connector.get_sensor())
         self.status_list.produce_from_multiple_entries(self._data_connector.get_status())
 
-    def error_with_status(self):
-        return {'message': 'There has been an Error with the Status. The Sensor is probably configured wrong or idle.'}
-
     def get_status(self, key=None, value=None, request_status=False):
         if key is None:
             return self.status_list.serialize()
@@ -288,10 +285,10 @@ class Manager:
         :param my_id: id of the sensor
         :return:
         """
-        length = self.status_list.remove_by_attribute(key, value)
+        count = self.status_list.remove_by_attribute(key, value)
         if self.save_to_database:
             self._data_connector.replace_status_list(self.status_list.serialize())
-        return {'length': length}
+        return {'success': True, 'count': count}
 
     def add_sensor(self, sensor_dictionary):
         """
@@ -311,8 +308,8 @@ class Manager:
         :return:
         """
         if not self.sensor_list.save_to_remove(my_id, self.status_list.serialize()):
-            return {'message': 'could not remove sensor, because it has active status items'}
-        self.sensor_list.remove_by_attribute('id', my_id)
+            return {'success': False, 'message': 'could not remove sensor, because it has active status items'}
+        count = self.sensor_list.remove_by_attribute('id', my_id)
         if self.save_to_database:
             self._data_connector.replace_sensor_list(self.sensor_list.serialize())
-        return self.sensor_list.serialize()
+        return {'success': True, 'count': count}

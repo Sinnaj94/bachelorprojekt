@@ -231,8 +231,8 @@ class DataOperations:
         self.base = base
         self.user_base = user_base
         self.my_file = my_file
-        self.base_file = os.path.join(self.base, self.my_file)
-        self.user_base_file = os.path.join(self.user_base, self.my_file)
+        self.base_file = os.path.join('./', self.base, self.my_file)
+        self.user_base_file = os.path.join('./', self.user_base, self.my_file)
         self.create_database()
 
     def update_data(self):
