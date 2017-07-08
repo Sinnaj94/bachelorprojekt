@@ -1,51 +1,120 @@
-from flask import Flask, render_template
-from flask_restful import reqparse, abort, Api, Resource
-from flask_ask import Ask, statement
-
-class MobileApi:
-	def __init__(self, statusInterface, configurationInterface, webConnector):
-		self.statusInterface = statusInterface
-		self.configurationInterface = configurationInterface
-		self.api = Api(webConnector.app, '/api')
-		self.addResources()
-
-	def getStatus(self, id = None, name = None):
-		return None
-
-	def returnError(self,message="An error occured"):
-		return {'error': message}
-
-	def addResources(self):
-		self.api.add_resource(self.Default, '/')
-		self.api.add_resource(self.Status, '/status/<int:statusId>', resource_class_kwargs = {"statusInterface": self.statusInterface})
-		#self.api.add_resource(self.TodoNext, '/next', resource_class_kwargs={ 'smart_engine': 'smart_engine' })
-
-	# return 
-	class Default(Resource):
-		def get(self):
-			return {'version':'1.0', 'name': 'Sensor API', 'author': 'Jannis Jahr'}
-
-	class Status(Resource):
-		def __init__(self, **class_kwargs):
-			self.statusInterface = class_kwargs['statusInterface']
-		def get(self, statusId):
-			return self.statusInterface.getStatusById(statusId)
+from flask import Flask, jsonify, request, render_template
+from flask_ask import Ask, statement, question
+import statuslogic
 
 
+class Main:
+    def __init__(self):
+        self.manager = statuslogic.Manager()
 
-class SpeechApi:
-	def __init__(self, statusInterface, webConnector):
-		self.statusInterface = statusInterface
-		self.api = Ask(webConnector.app, '/ask')
+manager = Main().manager
+
+# Flask Application
+app = Flask(__name__)
+
+"""
+ALEXA CONFIGURATION
+"""
+ask = Ask(app, '/ask')
 
 
-class WebConnector:
-	def __init__(self, debug=False, host='0.0.0.0'):
-		self.name = 'server'
-		self.app = Flask('server')
-		self.debug = debug
-		self.host = host
-		
-	def startServing(self):
-		print("Starting to serve")
-		self.app.run(debug=self.debug, host=self.host)
+# First Start of Alexa
+@ask.launch
+def connection():
+    return question("Welchen Status?")
+
+
+# Ask Intent for Status Intent
+@ask.intent('StatusIntent')
+def get_status(status_name, status_id):
+    current_status = None
+    print(status_name)
+    print(status_id)
+    if status_name != '?' and status_name is not None:
+        current_status = manager.get_status('name', status_name, True)
+    elif status_id != '?' and status_id is not None:
+        current_status = manager.get_status('id', status_id, True)
+    else:
+        return question("Bitte gib eine ID-Nummer oder einen Namen vom Statusgeraet an.")
+    if not current_status:
+        return question("Sorry, konnte ich nicht finden.")
+    # if there is a bool, use the unit and split it
+    if current_status.get('data_type') == 'bool':
+        return question(current_status.get('prefix') + " " +
+                        current_status.get('unit').split('|')[int(current_status.get('value'))] + " " +
+                        current_status.get('postfix') + " Welchen Status nun?")
+    return question(current_status.get('prefix') + " " + current_status.get('value') + " " + current_status.get('unit')
+                    + " " + current_status.get('postfix') + " Welchen Status nun?")
+
+"""
+API CONFIGURATION
+"""
+
+
+@app.route('/api/status', methods=['GET', 'POST', 'DELETE'])
+def get_status_list():
+    if request.method == 'GET':
+        request_value = False
+        if str(request.args.get('request')) == "1":
+            request_value = True
+        if request.args.get('name'):
+            return jsonify(manager.get_status('name', request.args.get('name'), request_value))
+        if request.args.get('id'):
+            return jsonify(manager.get_status('id', request.args.get('id'), request_value))
+        return jsonify(manager.get_status())
+    elif request.method == 'POST':
+        return jsonify(manager.add_status(StatusModel().make_dictionary(request.form)))
+    elif request.method == 'DELETE':
+        if request.args.get('name'):
+            return jsonify(manager.remove_status('name', request.args.get('name')))
+        if request.args.get('id'):
+            return jsonify(manager.remove_status('id', request.args.get('id')))
+        return {'message': 'could not delete status because you have given no attributes name or id'}
+
+
+@app.route('/api/sensor', methods=['GET', 'POST', 'DELETE'])
+def get_sensor_list():
+    if request.method == 'GET':
+        if request.args.get('name'):
+            return jsonify(manager.get_sensor('name', request.args.get('name')))
+        if request.args.get('id'):
+            return jsonify(manager.get_sensor('id', request.args.get('id')))
+        return jsonify(manager.get_sensor())
+    elif request.method == 'POST':
+        return jsonify(manager.add_sensor(SensorModel().make_dictionary(request.form)))
+    elif request.method == 'DELETE':
+        return jsonify(manager.remove_sensor(request.args.get('id')))
+"""
+HTML
+"""
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+class Model(object):
+    def __init__(self, attributes):
+        self.attributes = attributes
+
+    def make_dictionary(self, external_dictionary):
+        my_return = {}
+        for value in self.attributes:
+            my_return[value] = external_dictionary.get(value)
+        return my_return
+
+
+class SensorModel(Model):
+    def __init__(self):
+        super(SensorModel, self).__init__(['name', 'port', 'rate'])
+
+
+class StatusModel(Model):
+    def __init__(self):
+        super(StatusModel, self).__init__(['data_type', 'name', 'postfix', 'prefix', 'request_digit', 'sensor', 'unit'])
+"""
+RUN THE APPLICATION
+"""
+if __name__ == "__main__":
+    app.run(debug=False, host="0.0.0.0")

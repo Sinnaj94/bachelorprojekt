@@ -1,3 +1,6 @@
 /venv
 ngrok
 *.pyc
+application/.idea
+application/venv
+.idea

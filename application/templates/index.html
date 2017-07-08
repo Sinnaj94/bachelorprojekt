@@ -1,0 +1,95 @@
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='logic.js')}}"></script>
+    <link rel="stylesheet" href="{{url_for('static', filename='stylesheet.css')}}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://use.fontawesome.com/044e53ba0f.js"></script>
+</head>
+<body>
+	<header>
+		<ul class="switch">
+			<li>
+	    		<a href="#status"><i class="fa fa-commenting" aria-hidden="true"></i>Status</a>
+	    	</li>
+	    	<li class="between-sign">|</li>
+	    	<li>
+	    		<a href="#sensor"><i class="fa fa-microchip" aria-hidden="true"></i>Sensor</a>
+	    	</li>
+		</ul>
+	</header>
+	<div class="outer-container">
+    	<div id="status" class="inner-container">
+    		<h1><i class="fa fa-commenting" aria-hidden="true"></i>Status overview</h1>
+    		<a class="refresh" href="/api/status"><i class="fa fa-refresh" aria-hidden="true"></i>Refresh</a>
+    		<ul class="data">
+    			
+    		</ul>
+    		<a class="add" href="#add-status"><i class="fa fa-plus" aria-hidden="true"></i> Add Status</a>
+    	</div>
+    	<div id="sensor" class="inner-container">
+    		<h1><i class="fa fa-microchip" aria-hidden="true"></i>Sensor overview</h1>
+    		<a class="refresh" href="/api/sensor"><i class="fa fa-refresh" aria-hidden="true"></i>Refresh</a>
+    		<ul class="data">
+
+    		</ul>
+    		<a class="add" href="#add-sensor"><i class="fa fa-plus" aria-hidden="true"></i> Add Sensor</a>
+    	</div>
+    	<div id="add-status">
+    		<h1>Add a new Status</h1>
+    		<form id="status-form" action="/api/status" method="post" data-href="#status">
+    			<ul class="attributes-list">
+    				<li>
+	    				<span class="descriptor">Name</span>
+						<select name="name">
+                            <option value="thermometer">Thermometer</option>
+                            <option value="tuer">Tür</option>
+                            <option value="kuehlschrank">Kühlschrank</option>
+                            <option value="briefkasten">Briefkasten</option>
+                            <option value="licht">Licht</option>
+						</select>
+	    			</li>
+	    			<li>
+	    				<span class="descriptor">Request Digit</span><input type="text" name="request_digit" value="1">
+	    			</li>
+	    			<li>
+	    				<span class="descriptor">Prefix</span><input type="text" name="prefix" value="Du hast">
+	    			</li>
+	    			<li>
+	    				<span class="descriptor">Postfix</span><input type="text" name="postfix" value="im Briefkasten.">
+	    			</li>
+	    			<li>
+	    				<span class="descriptor">Data Type</span><select name="data_type"><option value="int">Integer</option><option value="bool">Boolean</option></select>
+	    			</li>
+	    			<li>
+	    				<span class="number" value="1">Sensor</span><select id="sensor-mapping" name="sensor"></select>
+	    			</li>
+	    			<li>
+	    				<span class="descriptor">Unit</span><input value="neue Briefe|keine neuen Briefe" name="unit">
+	    			</li>
+	    			<li>
+	    				<button type="submit">Submit<i class="fa fa-check" aria-hidden="true"></i></button>
+	    			</li>
+    			</ul>
+    		</form>
+    	</div>
+    	<div id="add-sensor">
+    		<h1>Add a new Sensor</h1>
+    		<form id="sensor-form" action="/api/sensor" method="post" data-href="#sensor">
+    			<ul class="attributes-list">
+    				<li>
+	    				<span class="descriptor">Name</span><input type="text" value="My Sensor" name="name">
+	    			</li>
+	    			<li>
+	    				<span class="descriptor">Baud Rate</span><input type="text" name="rate" value="9600">
+	    			</li>
+	    			<li>
+	    				<span class="descriptor">Port</span><input type="text" name="port" value="/dev/">
+	    			</li>
+	    			<li>
+	    				<button type="submit">Submit<i class="fa fa-check" aria-hidden="true"></i></button>
+	    			</li>
+    			</ul>
+    		</form>
+    	</div>
+    </div>
+</body>
