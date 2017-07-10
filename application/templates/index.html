@@ -8,16 +8,24 @@
 <body>
 	<header>
 		<ul class="switch">
+            <li>
+                <a href="#home"><i class="fa fa-home" aria-hidden="true"></i>Home</a>
+            </li>
 			<li>
 	    		<a href="#status"><i class="fa fa-commenting" aria-hidden="true"></i>Status</a>
 	    	</li>
-	    	<li class="between-sign">|</li>
 	    	<li>
 	    		<a href="#sensor"><i class="fa fa-microchip" aria-hidden="true"></i>Sensor</a>
 	    	</li>
 		</ul>
 	</header>
 	<div class="outer-container">
+        <div id="home" class="inner-container">
+            <h1><i class="fa fa-home" aria-hidden="true"></i>Home</h1>
+            <h2>Welcome to the configuration interface. Here, you have the possibility, to add Sensor interfaces and Status configurations.</h2>
+            <div class="disclaimer">This project was implemented for my bachelor thesis in media computer science.</div>
+            <div class="name">Ersteller: Jannis Jahr, Hochschule Bremen, Internationaler Studiengang Medieninformatik</div>
+        </div>
     	<div id="status" class="inner-container">
     		<h1><i class="fa fa-commenting" aria-hidden="true"></i>Status overview</h1>
     		<a class="refresh" href="/api/status"><i class="fa fa-refresh" aria-hidden="true"></i>Refresh</a>
@@ -48,23 +56,27 @@
                             <option value="licht">Licht</option>
 						</select>
 	    			</li>
+                    <li>
+                        <span class="descriptor">Sensor-Device</span><select id="sensor-mapping" name="sensor"></select>
+                    </li>
 	    			<li>
-	    				<span class="descriptor">Request Digit</span><input type="text" name="request_digit" value="1">
+	    				<span class="descriptor">Sensor</span>
+                        <select name="request_digit">
+                            <option value="1">Potentiometer</option>
+                            <option value="2">Schalter</option>
+                        </select>
 	    			</li>
 	    			<li>
 	    				<span class="descriptor">Prefix</span><input type="text" name="prefix" value="Du hast">
 	    			</li>
+                    <li>
+                        <span class="descriptor">Unit</span><input value="neue Briefe|keine neuen Briefe" name="unit">
+                    </li>
 	    			<li>
 	    				<span class="descriptor">Postfix</span><input type="text" name="postfix" value="im Briefkasten.">
 	    			</li>
 	    			<li>
 	    				<span class="descriptor">Data Type</span><select name="data_type"><option value="int">Integer</option><option value="bool">Boolean</option></select>
-	    			</li>
-	    			<li>
-	    				<span class="number" value="1">Sensor</span><select id="sensor-mapping" name="sensor"></select>
-	    			</li>
-	    			<li>
-	    				<span class="descriptor">Unit</span><input value="neue Briefe|keine neuen Briefe" name="unit">
 	    			</li>
 	    			<li>
 	    				<button type="submit">Submit<i class="fa fa-check" aria-hidden="true"></i></button>
