@@ -26,6 +26,7 @@ $(document).ready(function() {
 		});
 
 	});
+	window.location.href = "#home";
 });
 
 function printError(message) {
