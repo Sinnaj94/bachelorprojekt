@@ -21,7 +21,8 @@ $(document).ready(function() {
 		        $(".refresh").click();
 		        window.location.href = my_href;
 		    } else {
-		        printError("Error")
+		        printError("You should add a Sensor first.")
+				window.location.href="#sensor"
 		    }
 		});
 
@@ -73,7 +74,7 @@ function removeValue(e) {
 		method: "DELETE"
 	}).done(function(data){
 	    if(data['message']) {
-		    printError(data['message'])
+		    printError(data['message']);
 		}
 		$(".refresh").click();
 
@@ -88,7 +89,7 @@ function showValue(e) {
 		dataType: "json",
 		method: "GET"
 	}).done(function(data){
-		alert(data['value'])
+		alert("Zurückgegebener Wert:" + data['value'])
 	});
 	e.preventDefault();
 }

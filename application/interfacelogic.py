@@ -21,15 +21,13 @@ ask = Ask(app, '/ask')
 # First Start of Alexa
 @ask.launch
 def connection():
-    return question("Welchen Status?")
+    return question("Welchen Status moechtest du wissen?")
 
 
 # Ask Intent for Status Intent
 @ask.intent('StatusIntent')
 def get_status(status_name, status_id):
     current_status = None
-    print(status_name)
-    print(status_id)
     if status_name != '?' and status_name is not None:
         current_status = manager.get_status('name', status_name, True)
     elif status_id != '?' and status_id is not None:
@@ -38,6 +36,8 @@ def get_status(status_name, status_id):
         return question("Bitte gib eine ID-Nummer oder einen Namen vom Statusgeraet an.")
     if not current_status:
         return question("Sorry, konnte ich nicht finden.")
+    if current_status['value'] is False:
+        return question("Es gibt ein Problem mit dem Sensor. Versuche es erneut.")
     # if there is a bool, use the unit and split it
     if current_status.get('data_type') == 'bool':
         return question(current_status.get('prefix') + " " +
