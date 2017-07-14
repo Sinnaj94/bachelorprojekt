@@ -2,17 +2,17 @@
 
 Implementierung einer Smart Home Umgebung (Bachelorarbeit von Jannis Jahr)
 
-### Zusammenfassung ###
+## Zusammenfassung ##
+Ein Projekt im Rahmen meiner Bachelorarbeit. Das Programm dient der Abfrage von Stati in der Umgebung. Dazu kann ein Arduino am PC angeschlossen werden, der bestimmte Sensoren besitzen kann.
+### Screenshot ###
+![Screenshot](./images/fig-iphone-mockup.png)
+## Setup ##
 
-
-
-### Setup ###
-
-#### Benötigte Software ####
+### Benötigte Software ###
 
 Auf dem Rechner sollten [Python](https://www.python.org/) (Version 2.7x) und der Python Package Manager [pip](https://pypi.python.org/pypi/pip) installiert sein. Weiterhin sollte die Python Virtual Environment Umgebung [virtualenv](http://python-guide-pt-br.readthedocs.io/en/latest/dev/virtualenvs/) installiert werden.
 
-#### Einrichtung der virtuellen Umgebung virtualenv ####
+### Einrichtung der virtuellen Umgebung virtualenv ###
 
 Eine virtuelle Umgebung für Python installiert verwendete Pakete nicht global, sondern legt eine virtuelle Umgebung für diese an. Folgende Schritte legen diese virtuelle Umgebung an, aktivieren sie und installieren die Requirements. 
 
@@ -22,13 +22,13 @@ Eine virtuelle Umgebung für Python installiert verwendete Pakete nicht global, 
 
 Hier ist eine [vollständige Anleitung](http://python-guide-pt-br.readthedocs.io/en/latest/dev/virtualenvs/) zu finden. 
 
-#### Starten des Api-Servers ####
+### Starten des Api-Servers ###
 
 Mit dem Kommandozeilenbefehl ```python interfacelogic.py``` kann der Server gestartet werden. Es sollte eine ähnliche Meldung wie folgende erscheinen:
 ```
  * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
 ```
-#### Beispielinterface
+### Beispielinterface ###
 
 Ein Beispielinterface, in dem die einzelnen Konfigurationen geändert werden können, kann unter [localhost:5000](http://localhost:5000) abgerufen werden. Die Api für Alexa und das Mobilgerät sind unter dem Unterpfad /api und /ask zu finden.
 
