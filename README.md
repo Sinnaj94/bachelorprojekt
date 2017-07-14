@@ -38,6 +38,6 @@ Ein Beispielinterface, in dem die einzelnen Konfigurationen geändert werden kö
 
 Jannis Jahr
 
-Verwendete Software:
+Unter den [Requirements](./application/requirements.txt) sind die verwendeten Python-Pakete ersichtlich.
 
-* [flask-restful](https://flask-restful.readthedocs.io/en/0.3.5/)
+[Kontakt](mailto:jannis.jahr@hotmail.de)
