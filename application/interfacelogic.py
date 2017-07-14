@@ -40,11 +40,11 @@ def get_status(status_name, status_id):
         return question("Es gibt ein Problem mit dem Sensor. Versuche es erneut.")
     # if there is a bool, use the unit and split it
     if current_status.get('data_type') == 'bool':
-        return question(current_status.get('prefix') + " " +
+        return statement(current_status.get('prefix') + " " +
                         current_status.get('unit').split('|')[int(current_status.get('value'))] + " " +
-                        current_status.get('postfix') + " Welchen Status nun?")
-    return question(current_status.get('prefix') + " " + current_status.get('value') + " " + current_status.get('unit')
-                    + " " + current_status.get('postfix') + " Welchen Status nun?")
+                        current_status.get('postfix'))
+    return statement(current_status.get('prefix') + " " + current_status.get('value') + " " + current_status.get('unit')
+                    + " " + current_status.get('postfix'))
 
 """
 API CONFIGURATION
