@@ -7,7 +7,8 @@ Ein Projekt im Rahmen meiner Bachelorarbeit. Das Programm dient der Abfrage von 
 ### Screenshot ###
 ![Screenshot](./images/fig-iphone-mockup.png)
 ## Setup ##
-
+### Benötigte Hardware ###
+Es wird ein Arduino mit angeschlossenen Sensoren benötigt. Darauf sollte der [Arduino Script](./arduino_script/arduino_script.ino) angepasst werden und installiert sein.
 ### Benötigte Software ###
 
 Auf dem Rechner sollten [Python](https://www.python.org/) (Version 2.7x) und der Python Package Manager [pip](https://pypi.python.org/pypi/pip) installiert sein. Weiterhin sollte die Python Virtual Environment Umgebung [virtualenv](http://python-guide-pt-br.readthedocs.io/en/latest/dev/virtualenvs/) installiert werden.
